@@ -1,0 +1,56 @@
+[project]
+name = "django-project"
+version = "0.1.0"
+description = "My awesome Django web application"
+authors = [
+    { name = "Your Name", email = "you@example.com" },
+]
+# ระบุเวอร์ชัน Python ที่โปรเจกต์นี้รองรับ
+requires-python = ">=3.11, <3.14" 
+
+# Dependencies ที่จำเป็นสำหรับการรันโปรดักชัน
+dependencies = [
+    "django",              # เว็บเฟรมเวิร์ก Django
+    "gunicorn",            # Production WSGI server (สำหรับรันใน Docker)
+    "psycopg2-binary",      # PostgreSQL adapter (ถ้าใช้ DB นี้)
+    # "mysqlclient",       # หรือ MySQL adapter
+    # "dj-database-url",   # สำหรับจัดการ env vars ของ DB
+    "django-environ",    # สำหรับจัดการ env vars ทั่วไป
+]
+
+# Dependencies สำหรับการพัฒนา (ใช้เมื่อรัน 'uv sync' หรือ 'uv add' ในโหมด dev)
+[project.optional-dependencies]
+dev = [
+    "uvicorn[standard]",   # ASGI server สำหรับการพัฒนา
+    "black",               # code formatter
+    "ruff",                # linter & formatter
+    "pytest",              # test runner
+    "django-debug-toolbar", # สำหรับการดีบัก
+]
+
+# ส่วนนี้จะระบุ Build Backend (uv ใช้ standard PEP 517/621)
+[build-system]
+requires = ["setuptools>=61.0.0"]
+build-backend = "setuptools.build_meta"
+
+# ==================================
+# การตั้งค่าสำหรับ uv และเครื่องมืออื่น ๆ
+# ==================================
+
+# การตั้งค่าเฉพาะของ uv
+# uv จะอ่าน Dependencies และ optional-dependencies จากตาราง [project] โดยตรง
+[tool.uv]
+# หากต้องการให้ uv ใช้ venv ที่ถูกจัดการอัตโนมัติ 
+# (ค่า default คือ true)
+managed = true 
+
+# การตั้งค่าสำหรับ Black (Code Formatter)
+[tool.black]
+line-length = 88
+target-version = ['py311', 'py312', 'py313']
+
+# การตั้งค่าสำหรับ Ruff (Linter)
+[tool.ruff]
+line-length = 120
+select = ["E", "F", "B", "I"] # ตัวอย่าง rule sets
+ignore = ["B008"] # ตัวอย่าง rule ที่ไม่สนใจ

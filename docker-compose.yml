@@ -1,0 +1,28 @@
+services:
+  web:
+    build:
+      context: .
+      args:
+        PYTHON_VERSION: "3.13" 
+    ports:
+      - "8000:8000"
+    volumes:
+      - static_volume:/app/redbit/staticfiles 
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+  db:
+    image: postgres:latest
+    ports:
+      - "5432:5432" 
+    volumes:
+      - postgres_data:/data/postgres
+    env_file:
+      - .env
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
