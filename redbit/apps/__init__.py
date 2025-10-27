@@ -1,3 +1,1 @@
-APPS_MODULE_NAME = [
-    "communities",
-]
+APPS_MODULE_NAME = ["apps.communities", "apps.users", "apps.votes"]

@@ -3,14 +3,11 @@
 
 import os
 import sys
-from pathlib import Path  # 1. Import Path
 
 
 def main():
     """Run administrative tasks."""
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "redbit.settings")
-    BASE_DIR = Path(__file__).resolve().parent
-    sys.path.append(str(BASE_DIR / "apps"))
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
