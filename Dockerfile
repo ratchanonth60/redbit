@@ -1,3 +1,6 @@
+# ========================
+# Build Arguments
+# ========================
 ARG PYTHON_VERSION="3.13"
 
 # ========================
@@ -7,13 +10,13 @@ FROM ghcr.io/astral-sh/uv:python${PYTHON_VERSION}-bookworm-slim AS build
 
 WORKDIR /app
 
-# Copy only lockfiles/deps first for cache
+# Copy only dependency files first for caching
 COPY pyproject.toml uv.lock* ./
 
-# Install dependencies only (no project) – ตามแนวทาง uv
+# Install dependencies (no project yet)
 RUN uv sync --locked --no-install-project --no-dev
 
-# Copy project source
+# Copy source code
 COPY . .
 
 # ========================
@@ -21,41 +24,51 @@ COPY . .
 # ========================
 FROM python:${PYTHON_VERSION}-slim AS runtime
 
+# Install required system packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl \
+    passwd \
+ && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-# Install uv into runtime image
+# Install uv in runtime
 RUN pip install --no-cache-dir uv
 
-# Create non-root user
-RUN adduser --disabled-password --gecos '' appuser
+# Copy entrypoint
+COPY ./docker/entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
 # Copy lockfiles
 COPY --from=build /app/pyproject.toml /app/uv.lock* ./
 
-# Grant ownership so appuser can write to /app
+# Create non-root user (fixed)
+RUN useradd -m -u 1000 appuser
+
+# Change ownership before switching user
 RUN chown -R appuser:appuser /app
 
+# Switch to non-root user
 USER appuser
 
-# Set environment variable for uv so it uses /app/.venv
+# Set env for uv virtualenv
 ENV UV_PROJECT_ENVIRONMENT=/app/.venv
 
-# Run uv sync to install production dependencies into /app/.venv
+# Install dependencies inside .venv
 RUN uv sync --locked --no-install-project --no-dev --python $(which python)
 
-# Copy project source with correct ownership
+# Copy project source (with ownership preserved)
 COPY --from=build --chown=appuser:appuser /app ./
 
-# Set PATH to use venv
-ENV PATH="/app/.venv/bin:$PATH"
-ENV PYTHONUNBUFFERED=1 \
+# Setup environment
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /app/redbit
 EXPOSE 8000
 
-# Check that Django is installed
-RUN uv pip show django || (echo "Django not installed!" && exit 1)
-
+# Entrypoint & default command
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["/app/.venv/bin/gunicorn", "redbit.wsgi:application", "--bind", "0.0.0.0:8000"]
 

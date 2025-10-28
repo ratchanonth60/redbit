@@ -17,10 +17,12 @@ dependencies = [
     # "dj-database-url",   # สำหรับจัดการ env vars ของ DB
     "django-environ", # สำหรับจัดการ env vars ทั่วไป
     "pillow",
-    "strawberry-graphql-django",
-    "strawberry-graphql[cli]",
     "PyJWT",
-    "strawberry-django-auth>=0.378.4",
+    "graphene-django>=3.2.3",
+    "django-graphql-jwt>=0.4.0",
+    "celery>=5.5.3",
+    "celery[redis]",
+    "cryptography>=46.0.3",
 ]
 
 # Dependencies สำหรับการพัฒนา (ใช้เมื่อรัน 'uv sync' หรือ 'uv add' ในโหมด dev)

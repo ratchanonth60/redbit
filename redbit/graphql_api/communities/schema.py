@@ -1,38 +1,48 @@
-from typing import List
-
-import strawberry
-import strawberry_django
+import graphene
 from apps.communities.models import Comment, Community, Post
+from graphene_django import DjangoObjectType
 
 
-@strawberry_django.type(Community, fields="__all__")
-class CommunityType:
-    pass
+# --- สร้าง Types ---
+class CommunityType(DjangoObjectType):
+    class Meta:
+        model = Community
+        fields = "__all__"
 
-@strawberry_django.type(Post, fields="__all__")
-class PostType:
-    pass
 
-@strawberry_django.type(Comment, fields="__all__")
-class CommentType:
-    pass
+class PostType(DjangoObjectType):
+    class Meta:
+        model = Post
+        fields = "__all__"
+
+
+class CommentType(DjangoObjectType):
+    class Meta:
+        model = Comment
+        fields = "__all__"
+
 
 # --- สร้าง Queries ---
+class CommunityQuery(graphene.ObjectType):
+    # posts: List[PostType] -> graphene.List(PostType)
+    posts = graphene.List(PostType)
 
-@strawberry.type
-class CommunityQuery:
+    # community_by_slug(slug: str) -> CommunityType
+    community_by_slug = graphene.Field(CommunityType, slug=graphene.String(required=True))
 
-    @strawberry.field
-    def posts(self) -> List[PostType]:
+    def resolve_posts(self, info, **kwargs):
         """
         Query เพื่อดึง Post ทั้งหมด
-        (Strawberry จะรัน Post.objects.all() ให้)
+        (Graphene ต้องเขียน resolver ชัดเจน)
         """
         return Post.objects.all()
 
-    @strawberry.field
-    def community_by_slug(self, slug: str) -> CommunityType:
+    def resolve_community_by_slug(self, info, slug):
         """
         Query เพื่อดึง Community 1 อันด้วย slug
         """
-        return Community.objects.get(slug=slug)
+        try:
+            return Community.objects.get(slug=slug)
+        except Community.DoesNotExist:
+            return None
+

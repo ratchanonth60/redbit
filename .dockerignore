@@ -1,2 +1,6 @@
 .venv/
-
+**/__pycache__/
+**/.venv/
+**/.git/
+**/.mypy_cache/
+**/.pytest_cache/

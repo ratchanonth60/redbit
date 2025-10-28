@@ -4,12 +4,31 @@ services:
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./redbit:/app/redbit
-      - /app/redbit/staticfiles 
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
+
+  worker:
+    restart: always
+    build:
+      context: . # Use the same context as the web service
+      args:
+        PYTHON_VERSION: "3.13" # Make sure this matches docker-compose.yml
+    command: celery -A redbit worker -l info
+    volumes:
+      - ./redbit:/app/redbit 
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
   db:
     image: postgres:latest
     ports:
@@ -21,5 +40,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
-      timeout: 5s
+      timeout: 10s
       retries: 5
+      
+

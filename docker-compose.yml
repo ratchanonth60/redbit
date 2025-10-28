@@ -21,8 +21,14 @@ services:
       - postgres_data:/data/postgres
     env_file:
       - .env
-
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379" # (Optional) เผื่อต้องการเข้าถึงจาก Host
+    volumes:
+      - redis_data:/data # (Optional) ทำให้ข้อมูล Redis คงอยู่
 volumes:
   postgres_data:
   static_volume:
   media_volume:
+  redis_data:
