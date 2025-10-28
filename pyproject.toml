@@ -16,7 +16,9 @@ dependencies = [
     # "mysqlclient",       # หรือ MySQL adapter
     # "dj-database-url",   # สำหรับจัดการ env vars ของ DB
     "django-environ",    # สำหรับจัดการ env vars ทั่วไป
-"pillow"
+    "pillow",
+    "strawberry-graphql-django",
+    "strawberry-graphql[cli]"
 ]
 
 # Dependencies สำหรับการพัฒนา (ใช้เมื่อรัน 'uv sync' หรือ 'uv add' ในโหมด dev)

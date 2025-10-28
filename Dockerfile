@@ -28,9 +28,6 @@ RUN --mount=type=cache,target=/home/appuser/.cache/uv,uid=1000,gid=1000 \
 # คัดลอกโค้ดโปรเจกต์ทั้งหมด (ตอนนี้เราเป็น appuser แล้ว)
 COPY . .
 
-# ตั้งค่า Django settings module (จำเป็นสำหรับ collectstatic)
-ENV DJANGO_SETTINGS_MODULE=redbit.settings.base
-
 # ========================
 # 2. Runtime Stage
 # ========================
@@ -50,8 +47,7 @@ COPY --from=build --chown=appuser:appuser /app /app
 ENV PATH="/app/.venv/bin:$PATH"
 # ตั้งค่า Environment Variables สำหรับ Production
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    DJANGO_SETTINGS_MODULE="redbit.settings.base"
+    PYTHONDONTWRITEBYTECODE=1 
 
 # เปลี่ยน Working Directory ไปยังรากของโปรเจกต์ Django
 WORKDIR /app/redbit
