@@ -10,15 +10,17 @@ requires-python = ">=3.11, <3.14"
 
 # Dependencies ที่จำเป็นสำหรับการรันโปรดักชัน
 dependencies = [
-    "django",              # เว็บเฟรมเวิร์ก Django
-    "gunicorn",            # Production WSGI server (สำหรับรันใน Docker)
-    "psycopg2-binary",      # PostgreSQL adapter (ถ้าใช้ DB นี้)
+    "django", # เว็บเฟรมเวิร์ก Django
+    "gunicorn", # Production WSGI server (สำหรับรันใน Docker)
+    "psycopg2-binary", # PostgreSQL adapter (ถ้าใช้ DB นี้)
     # "mysqlclient",       # หรือ MySQL adapter
     # "dj-database-url",   # สำหรับจัดการ env vars ของ DB
-    "django-environ",    # สำหรับจัดการ env vars ทั่วไป
+    "django-environ", # สำหรับจัดการ env vars ทั่วไป
     "pillow",
     "strawberry-graphql-django",
-    "strawberry-graphql[cli]"
+    "strawberry-graphql[cli]",
+    "PyJWT",
+    "strawberry-django-auth>=0.378.4",
 ]
 
 # Dependencies สำหรับการพัฒนา (ใช้เมื่อรัน 'uv sync' หรือ 'uv add' ในโหมด dev)
