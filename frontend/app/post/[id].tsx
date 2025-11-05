@@ -16,7 +16,8 @@ import Colors from '@/constants/colors';
 // import { mockPosts, mockComments } from '@/mocks/posts'; 
 import { Comment } from '@/types/post'; // ยังคงใช้ Type
 // --- เพิ่ม Apollo Client ---
-import { useQuery, useMutation, gql } from '@apollo/client';
+import { gql } from "@apollo/client"; // (สำหรับสิ่งที่ไม่ใช่ React เช่น gql)
+import { useQuery } from "@apollo/client/react"; // (สำหรับ React Hooks ทั้งหมด)
 
 // 1. สร้าง GraphQL Query เพื่อดึงข้อมูล Post และ Comments
 // เราดึงข้อมูล 2 อย่างใน query เดียวโดยใช้ alias

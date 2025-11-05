@@ -15,8 +15,8 @@ import Colors from '@/constants/colors';
 // --- ลบ Mocks ---
 // import { mockPosts } from '@/mocks/posts';
 import { Post } from '@/types/post';
-// --- เพิ่ม Apollo Client ---
-import { gql, useQuery, useMutation } from '@apollo/client';
+import { gql } from "@apollo/client"; // (สำหรับสิ่งที่ไม่ใช่ React เช่น gql)
+import { useQuery, useMutation } from "@apollo/client/react"; // (สำหรับ React Hooks ทั้งหมด)
 
 // 1. สร้าง Query เพื่อดึงโพสต์ทั้งหมด
 const GET_ALL_POSTS = gql`
