@@ -23,8 +23,11 @@ dependencies = [
     "celery>=5.5.3",
     "celery[redis]",
     "cryptography>=46.0.3",
+    "django-cors-headers>=4.9.0",
 ]
 
+[tool.setuptools.packages.find]
+include = ["redbit*"]
 # Dependencies สำหรับการพัฒนา (ใช้เมื่อรัน 'uv sync' หรือ 'uv add' ในโหมด dev)
 [project.optional-dependencies]
 dev = [

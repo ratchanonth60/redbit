@@ -1,13 +1,14 @@
 import graphene
 from graphql_api.communities.schema import CommunityQuery
+from graphql_api.posts.schema import Query as PostsQuery
 from graphql_api.users.mutations import UserMutation
 from graphql_api.users.schema import UserQuery
 
-from .jwt import AuthMutation  # <-- Import mutation ใหม่
+from .jwt import AuthMutation
 
 
 # Query หลัก รวมทุก Query-App และ graphene.ObjectType
-class Query(UserQuery, CommunityQuery, graphene.ObjectType):
+class Query(UserQuery, CommunityQuery, PostsQuery, graphene.ObjectType):
     pass
 
 

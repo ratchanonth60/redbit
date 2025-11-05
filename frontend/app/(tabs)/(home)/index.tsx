@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React from 'react'; // ลบ useState ออก
 import {
   StyleSheet,
   View,
@@ -8,41 +7,79 @@ import {
   TouchableOpacity,
   Image,
   Animated,
+  ActivityIndicator, // เพิ่ม ActivityIndicator
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowUp, ArrowDown, MessageSquare } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { mockPosts } from '@/mocks/posts';
+// --- ลบ Mocks ---
+// import { mockPosts } from '@/mocks/posts';
 import { Post } from '@/types/post';
+// --- เพิ่ม Apollo Client ---
+import { gql, useQuery, useMutation } from '@apollo/client';
+
+// 1. สร้าง Query เพื่อดึงโพสต์ทั้งหมด
+const GET_ALL_POSTS = gql`
+  query GetAllPosts {
+    allPosts {
+      id
+      community {
+        name
+      }
+      author {
+        username
+      }
+      timeAgo
+      title
+      content
+      imageUrl
+      upvotes
+      commentCount
+      userVote
+    }
+  }
+`;
+
+// 2. สร้าง Mutation สำหรับโหวต (เหมือนใน [id].tsx)
+const VOTE_MUTATION = gql`
+  mutation Vote($objectId: ID!, $modelName: String!, $voteType: String!) {
+    vote(objectId: $objectId, modelName: $modelName, voteType: $voteType) {
+      post {
+        id
+        upvotes
+        userVote
+      }
+    }
+  }
+`;
+
 
 export default function HomeScreen() {
-  const [posts, setPosts] = useState(mockPosts);
+  // --- 3. ลบ useState(mockPosts) และใช้ useQuery แทน ---
+  // const [posts, setPosts] = useState(mockPosts); // ลบ
   const router = useRouter();
+  
+  const { data, loading, error, refetch } = useQuery(GET_ALL_POSTS, {
+    fetchPolicy: 'network-only' // ดึงข้อมูลใหม่เสมอ
+  });
+  
+  // 4. ใช้ useMutation
+  const [voteMutation] = useMutation(VOTE_MUTATION, {
+    // refetch Query เดิมเพื่อให้คะแนนอัปเดต
+    refetchQueries: [{ query: GET_ALL_POSTS }],
+    awaitRefetchQueries: true,
+  });
 
+  // 5. อัปเดต HandleVote
   const handleVote = (postId: string, voteType: 'up' | 'down') => {
-    setPosts(currentPosts =>
-      currentPosts.map(post => {
-        if (post.id !== postId) return post;
-
-        let upvoteDelta = 0;
-        let newVote: 'up' | 'down' | null = voteType;
-
-        if (post.userVote === voteType) {
-          newVote = null;
-          upvoteDelta = voteType === 'up' ? -1 : 1;
-        } else if (post.userVote === null) {
-          upvoteDelta = voteType === 'up' ? 1 : -1;
-        } else {
-          upvoteDelta = voteType === 'up' ? 2 : -2;
-        }
-
-        return {
-          ...post,
-          userVote: newVote,
-          upvotes: post.upvotes + upvoteDelta,
-        };
-      })
-    );
+    // Logic การอัปเดต state แบบเก่าถูกลบออก
+    voteMutation({
+      variables: {
+        objectId: postId,
+        modelName: 'post',
+        voteType: voteType,
+      },
+    });
   };
 
   const formatNumber = (num: number): string => {
@@ -51,6 +88,29 @@ export default function HomeScreen() {
     }
     return num.toString();
   };
+
+  // 6. จัดการ State (Loading, Error)
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color={Colors.light.text} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <Text style={styles.errorText}>Error loading posts: {error.message}</Text>
+        <TouchableOpacity onPress={() => refetch()}>
+          <Text style={{ color: Colors.light.upvote }}>Try again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // 7. ดึงข้อมูลจริงจาก data
+  const posts: Post[] = data?.allPosts || [];
 
   return (
     <View style={styles.container}>
@@ -74,7 +134,7 @@ export default function HomeScreen() {
 }
 
 interface PostCardProps {
-  post: Post;
+  post: Post; // ตอนนี้ Type ถูกต้องแล้ว
   onVote: (postId: string, voteType: 'up' | 'down') => void;
   onPress: () => void;
   formatNumber: (num: number) => string;
@@ -140,9 +200,10 @@ function PostCard({ post, onVote, onPress, formatNumber }: PostCardProps) {
         activeOpacity={1}
       >
         <View style={styles.postHeader}>
-          <Text style={styles.community}>{post.community}</Text>
+          {/* 8. อัปเดต JSX ให้ตรงกับ Type ที่เราแก้ */}
+          <Text style={styles.community}>{post.community.name}</Text>
           <Text style={styles.metadata}>
-            • {post.author} • {post.timeAgo}
+            • {post.author.username} • {post.timeAgo}
           </Text>
         </View>
 
@@ -175,6 +236,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.light.background,
+  },
+  // 9. เพิ่ม Style สำหรับ Loading/Error
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: Colors.light.textSecondary,
+    textAlign: 'center',
+    marginBottom: 16,
   },
   scrollView: {
     flex: 1,

@@ -1,5 +1,6 @@
-from apps import APPS_MODULE_NAME, APPS_THIRD_PARTY
 import datetime
+
+from apps import APPS_MODULE_NAME, APPS_THIRD_PARTY
 
 from .base import *
 
@@ -24,9 +25,16 @@ except FileNotFoundError:
 
 INSTALLED_APPS += APPS_MODULE_NAME + APPS_THIRD_PARTY
 AUTH_USER_MODEL = "users.User"
-
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8081",
+    "http://127.0.0.1:8081",
+    "http://10.126.34.63:8081",   # Expo web ผ่าน IP จริง
+    "http://10.126.34.63:19006",  # Expo Go (dev app)
+]
+CORS_ALLOW_ALL_ORIGINS = True  # คงไว้ตอน dev ก็ได้
 MEDIA_URL = "/media/"
 
+CORS_ALLOW_ALL_ORIGINS = True
 MEDIA_ROOT = BASE_DIR.parent / "mediafiles"
 
 AUTHENTICATION_BACKENDS = [
@@ -40,6 +48,7 @@ GRAPHENE = {
 
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",

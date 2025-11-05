@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   StyleSheet,
@@ -8,20 +7,141 @@ import {
   TouchableOpacity,
   Image,
   TextInput,
+  ActivityIndicator, // เพิ่ม ActivityIndicator
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { ArrowUp, ArrowDown, MessageSquare, Send } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { mockPosts, mockComments } from '@/mocks/posts';
-import { Comment } from '@/types/post';
+// --- ลบ Mocks ---
+// import { mockPosts, mockComments } from '@/mocks/posts'; 
+import { Comment } from '@/types/post'; // ยังคงใช้ Type
+// --- เพิ่ม Apollo Client ---
+import { useQuery, useMutation, gql } from '@apollo/client';
+
+// 1. สร้าง GraphQL Query เพื่อดึงข้อมูล Post และ Comments
+// เราดึงข้อมูล 2 อย่างใน query เดียวโดยใช้ alias
+const GET_POST_DETAILS = gql`
+  query GetPostDetails($id: ID!, $postId: ID!) {
+    post(id: $id) {
+      id
+      community {
+        name
+      }
+      author {
+        username
+      }
+      timeAgo
+      title
+      content
+      imageUrl
+      upvotes
+      commentCount
+      userVote
+    }
+    comments(postId: $postId) {
+      id
+      author {
+        username
+      }
+      timeAgo
+      content
+      upvotes
+      userVote
+      replies {
+        id
+        author {
+          username
+        }
+        timeAgo
+        content
+        upvotes
+        userVote
+      }
+    }
+  }
+`;
+
+// 2. สร้าง GraphQL Mutation สำหรับการโหวต
+const VOTE_MUTATION = gql`
+  mutation Vote($objectId: ID!, $modelName: String!, $voteType: String!) {
+    vote(objectId: $objectId, modelName: $modelName, voteType: $voteType) {
+      post {
+        id
+        upvotes
+        userVote
+      }
+      comment {
+        id
+        upvotes
+        userVote
+      }
+    }
+  }
+`;
+
+// 3. สร้าง GraphQL Mutation สำหรับการสร้างคอมเมนต์
+const CREATE_COMMENT_MUTATION = gql`
+  mutation CreateComment($postId: ID!, $content: String!, $parentId: ID) {
+    createComment(postId: $postId, content: $content, parentId: $parentId) {
+      comment {
+        id
+      }
+    }
+  }
+`;
+
 
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const post = mockPosts.find(p => p.id === id);
-  const [comments, setComments] = useState(mockComments[id] || []);
   const [newComment, setNewComment] = useState('');
-  const [postVote, setPostVote] = useState<'up' | 'down' | null>(post?.userVote || null);
-  const [postUpvotes, setPostUpvotes] = useState(post?.upvotes || 0);
+
+  // 4. ใช้ useQuery เพื่อดึงข้อมูล
+  const { data, loading, error, refetch } = useQuery(GET_POST_DETAILS, {
+    variables: { id: id, postId: id },
+    fetchPolicy: 'network-only', // ดึงข้อมูลใหม่เสมอเมื่อเข้าหน้านี้
+  });
+
+  // 5. ใช้ useMutation
+  const [voteMutation] = useMutation(VOTE_MUTATION, {
+    // refetch ข้อมูล Post และ Comments ใหม่หลังจากโหวต
+    // เพื่อให้ UI อัปเดตคะแนนและสถานะการโหวต
+    refetchQueries: [{ query: GET_POST_DETAILS, variables: { id: id, postId: id } }],
+    awaitRefetchQueries: true,
+  });
+
+  const [createCommentMutation] = useMutation(CREATE_COMMENT_MUTATION, {
+    // refetch ข้อมูล Comments ใหม่หลังจากเพิ่มคอมเมนต์
+    refetchQueries: [{ query: GET_POST_DETAILS, variables: { id: id, postId: id } }],
+    awaitRefetchQueries: true,
+  });
+
+
+  // 6. ลบ useState ที่ใช้ Mocks ออก
+  // const post = mockPosts.find(p => p.id === id); // ลบ
+  // const [comments, setComments] = useState(mockComments[id] || []); // ลบ
+  // const [postVote, setPostVote] = useState<'up' | 'down' | null>(post?.userVote || null); // ลบ
+  // const [postUpvotes, setPostUpvotes] = useState(post?.upvotes || 0); // ลบ
+
+  // 7. จัดการ State (Loading, Error, Data)
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color={Colors.light.text} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <Text style={styles.errorText}>Error loading post: {error.message}</Text>
+      </View>
+    );
+  }
+
+  // 8. ดึงข้อมูลจาก data
+  const post = data?.post;
+  const comments = data?.comments || [];
 
   if (!post) {
     return (
@@ -31,56 +151,27 @@ export default function PostDetailScreen() {
     );
   }
 
+  // 9. อัปเดต Handlers ให้เรียกใช้ useMutation
   const handlePostVote = (voteType: 'up' | 'down') => {
-    let upvoteDelta = 0;
-    let newVote: 'up' | 'down' | null = voteType;
-
-    if (postVote === voteType) {
-      newVote = null;
-      upvoteDelta = voteType === 'up' ? -1 : 1;
-    } else if (postVote === null) {
-      upvoteDelta = voteType === 'up' ? 1 : -1;
-    } else {
-      upvoteDelta = voteType === 'up' ? 2 : -2;
-    }
-
-    setPostVote(newVote);
-    setPostUpvotes(postUpvotes + upvoteDelta);
+    voteMutation({
+      variables: {
+        objectId: post.id,
+        modelName: 'post',
+        voteType: voteType,
+      },
+    });
   };
 
   const handleCommentVote = (commentId: string, voteType: 'up' | 'down') => {
-    const updateCommentVote = (comments: Comment[]): Comment[] => {
-      return comments.map(comment => {
-        if (comment.id === commentId) {
-          let upvoteDelta = 0;
-          let newVote: 'up' | 'down' | null = voteType;
-
-          if (comment.userVote === voteType) {
-            newVote = null;
-            upvoteDelta = voteType === 'up' ? -1 : 1;
-          } else if (comment.userVote === null) {
-            upvoteDelta = voteType === 'up' ? 1 : -1;
-          } else {
-            upvoteDelta = voteType === 'up' ? 2 : -2;
-          }
-
-          return {
-            ...comment,
-            userVote: newVote,
-            upvotes: comment.upvotes + upvoteDelta,
-          };
-        }
-        if (comment.replies) {
-          return {
-            ...comment,
-            replies: updateCommentVote(comment.replies),
-          };
-        }
-        return comment;
-      });
-    };
-
-    setComments(updateCommentVote(comments));
+    // Logic การอัปเดต state แบบทันที (Optimistic Update) ถูกลบออก
+    // และแทนที่ด้วยการเรียก mutation
+    voteMutation({
+      variables: {
+        objectId: commentId,
+        modelName: 'comment',
+        voteType: voteType,
+      },
+    });
   };
 
   const formatNumber = (num: number): string => {
@@ -93,27 +184,33 @@ export default function PostDetailScreen() {
   const handleAddComment = () => {
     if (!newComment.trim()) return;
 
-    const comment: Comment = {
-      id: `new-${Date.now()}`,
-      author: 'u/you',
-      timeAgo: 'just now',
-      content: newComment,
-      upvotes: 1,
-      userVote: 'up',
-    };
-
-    setComments([comment, ...comments]);
-    setNewComment('');
+    createCommentMutation({
+      variables: {
+        postId: post.id,
+        content: newComment,
+        parentId: null, // (สำหรับการ reply สามารถเพิ่ม logic ทีหลัง)
+      },
+      onCompleted: () => {
+        setNewComment(''); // เคลียร์ช่อง input
+      },
+      onError: (err) => {
+        console.error("Error adding comment:", err);
+      }
+    });
   };
 
+  // 10. อัปเดต JSX 
+  // (ส่วนใหญ่เหมือนเดิม แต่ต้องเปลี่ยน post.community เป็น post.community.name 
+  // และ post.author เป็น post.author.username)
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.postCard}>
           <View style={styles.postHeader}>
-            <Text style={styles.community}>{post.community}</Text>
+            {/* อัปเดตที่นี่ */}
+            <Text style={styles.community}>{post.community.name}</Text>
             <Text style={styles.metadata}>
-              • {post.author} • {post.timeAgo}
+              • {post.author.username} • {post.timeAgo}
             </Text>
           </View>
 
@@ -133,18 +230,21 @@ export default function PostDetailScreen() {
               >
                 <ArrowUp
                   size={22}
-                  color={postVote === 'up' ? Colors.light.upvote : Colors.light.textSecondary}
-                  fill={postVote === 'up' ? Colors.light.upvote : 'transparent'}
+                  // อัปเดตที่นี่
+                  color={post.userVote === 'up' ? Colors.light.upvote : Colors.light.textSecondary}
+                  fill={post.userVote === 'up' ? Colors.light.upvote : 'transparent'}
                 />
               </TouchableOpacity>
               <Text
                 style={[
                   styles.voteCount,
-                  postVote === 'up' && { color: Colors.light.upvote },
-                  postVote === 'down' && { color: Colors.light.downvote },
+                  // อัปเดตที่นี่
+                  post.userVote === 'up' && { color: Colors.light.upvote },
+                  post.userVote === 'down' && { color: Colors.light.downvote },
                 ]}
               >
-                {formatNumber(postUpvotes)}
+                {/* อัปเดตที่นี่ */}
+                {formatNumber(post.upvotes)}
               </Text>
               <TouchableOpacity
                 onPress={() => handlePostVote('down')}
@@ -152,8 +252,9 @@ export default function PostDetailScreen() {
               >
                 <ArrowDown
                   size={22}
-                  color={postVote === 'down' ? Colors.light.downvote : Colors.light.textSecondary}
-                  fill={postVote === 'down' ? Colors.light.downvote : 'transparent'}
+                  // อัปเดตที่นี่
+                  color={post.userVote === 'down' ? Colors.light.downvote : Colors.light.textSecondary}
+                  fill={post.userVote === 'down' ? Colors.light.downvote : 'transparent'}
                 />
               </TouchableOpacity>
             </View>
@@ -192,7 +293,7 @@ export default function PostDetailScreen() {
         </View>
 
         <View style={styles.commentsSection}>
-          {comments.map(comment => (
+          {comments.map((comment: any) => ( // ใช้ any ชั่วคราว หรืออัปเดต Comment type
             <CommentItem
               key={comment.id}
               comment={comment}
@@ -208,7 +309,7 @@ export default function PostDetailScreen() {
 }
 
 interface CommentItemProps {
-  comment: Comment;
+  comment: any; // ควรอัปเดต Type ให้ตรงกับ GraphQL (มี author.username)
   onVote: (commentId: string, voteType: 'up' | 'down') => void;
   formatNumber: (num: number) => string;
   depth: number;
@@ -220,7 +321,8 @@ function CommentItem({ comment, onVote, formatNumber, depth }: CommentItemProps)
   return (
     <View style={[styles.commentItem, { marginLeft }]}>
       <View style={styles.commentHeader}>
-        <Text style={styles.commentAuthor}>{comment.author}</Text>
+        {/* อัปเดตที่นี่ */}
+        <Text style={styles.commentAuthor}>{comment.author.username}</Text>
         <Text style={styles.commentTime}>• {comment.timeAgo}</Text>
       </View>
 
@@ -259,7 +361,7 @@ function CommentItem({ comment, onVote, formatNumber, depth }: CommentItemProps)
       </View>
 
       {comment.replies &&
-        comment.replies.map(reply => (
+        comment.replies.map((reply: any) => (
           <CommentItem
             key={reply.id}
             comment={reply}
@@ -272,10 +374,15 @@ function CommentItem({ comment, onVote, formatNumber, depth }: CommentItemProps)
   );
 }
 
+// 11. เพิ่ม style สำหรับ center (ใช้ใน loading)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.light.background,
+  },
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollView: {
     flex: 1,

@@ -1,41 +1,44 @@
-import { Tabs } from "expo-router";
-import { Home, Compass, User } from "lucide-react-native";
-import React from "react";
-
-import Colors from "@/constants/colors";
+import { Tabs } from 'expo-router';
+import React from 'react';
+import { Home, Compass, User } from 'lucide-react-native';
+import Colors from '@/constants/colors';
+import HapticTab from '@/components/haptic-tab';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.light.tint,
-        headerShown: false,
+        tabBarActiveTintColor: Colors.light.upvote,
+        tabBarInactiveTintColor: Colors.light.textSecondary,
         tabBarStyle: {
           backgroundColor: Colors.light.card,
           borderTopColor: Colors.light.border,
-          borderTopWidth: 1,
         },
+        headerShown: false,
       }}
     >
       <Tabs.Screen
         name="(home)"
         options={{
-          title: "Home",
+          title: 'Home',
           tabBarIcon: ({ color }) => <Home size={24} color={color} />,
+          tabBarButton: HapticTab,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
-          title: "Explore",
+          title: 'Explore',
           tabBarIcon: ({ color }) => <Compass size={24} color={color} />,
+          tabBarButton: HapticTab,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: 'Profile',
           tabBarIcon: ({ color }) => <User size={24} color={color} />,
+          tabBarButton: HapticTab,
         }}
       />
     </Tabs>
