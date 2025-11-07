@@ -4,6 +4,10 @@ const Colors = {
     textSecondary: "#777",
     card: "#fff",
     border: "#ccc",
+    card: "#f8f8f8", // (ค่าสีสมมติ)
+    border: "#ccc", // (ค่าสีสมมติ)
+    textSecondary: "gray", // (ค่าสีสมมติ)
+    upvote: "#FF4500", // (ค่าสีสมมติ)
   },
   dark: {
     upvote: "#ff5722",
