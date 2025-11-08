@@ -13,6 +13,7 @@ import { Post } from '@/types/post';
 // 3. Import Hook และ Component ที่เราสร้าง
 import { useHomeScreen } from '@/hooks/useHomeScreen';
 import { MemoizedPostCard } from '@/components/PostCard';
+import { Plus } from 'lucide-react-native';
 
 export default function HomeScreen() {
   // 4. เรียก Logic ทั้งหมด
@@ -81,6 +82,20 @@ export default function HomeScreen() {
           <RefreshControl refreshing={loading} onRefresh={refetch} />
         }
       />
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        className="absolute bottom-6 right-6 bg-upvote w-16 h-16 rounded-full items-center justify-center shadow-lg"
+        onPress={() => router.push('/post/create')}
+        style={{
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 4,
+          elevation: 8,
+        }}
+      >
+        <Plus size={28} color="white" />
+      </TouchableOpacity>
     </View>
   );
 }

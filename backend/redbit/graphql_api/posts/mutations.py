@@ -1,32 +1,104 @@
 import graphene
 from apps.communities.models import Community
 from apps.posts.models import Comment, Post
-from apps.votes.models import Vote
-from django.contrib.contenttypes.models import ContentType
 from graphql_jwt.decorators import login_required
 
 from .types import CommentType, PostType
 
 
+class VoteMutation(graphene.Mutation):
+    """Vote on a post"""
+    class Arguments:
+        post_id = graphene.ID(required=True)
+        value = graphene.Int(required=True)  # 1 for upvote, -1 for downvote
+    success = graphene.Boolean()
+    post = graphene.Field(PostType)
+    errors = graphene.List(graphene.String)
+    @login_required
+    def mutate(self, info, post_id, value):
+        user = info.context.user
+        errors = []
+        if value not in [1, -1]:
+            errors.append("Invalid vote value.")
+            return VoteMutation(success=False, errors=errors)
+        try:
+            post = Post.objects.get(pk=post_id)
+        except Post.DoesNotExist:
+            errors.append("Post not found.")
+            return VoteMutation(success=False, errors=errors)
+        # Handle voting logic
+        vote, created = post.votes.get_or_create(user=user)
+        if not created and vote.value == value:
+            # User is trying to vote the same way again, remove the vote
+            vote.delete()
+        else:
+            vote.value = value
+            vote.save()
+        return VoteMutation(success=True, post=post, errors=[])
+
+class CreateComment(graphene.Mutation):
+    """Create new comment"""
+    class Arguments:
+        post_id = graphene.ID(required=True)
+        content = graphene.String(required=True)
+    success = graphene.Boolean()
+    comment = graphene.Field(CommentType)
+    errors = graphene.List(graphene.String)
+    @login_required
+    def mutate(self, info, post_id, content):
+        user = info.context.user
+        errors = []
+        
+        if not content.strip():
+            errors.append("Content cannot be empty.")
+            return CreateComment(success=False, errors=errors)
+        
+        try:
+            post = Post.objects.get(pk=post_id)
+        except Post.DoesNotExist:
+            errors.append("Post not found.")
+            return CreateComment(success=False, errors=errors)
+        
+        comment = Comment.objects.create(
+            author=user,
+            post=post,
+            content=content
+        )
+        
+        return CreateComment(success=True, comment=comment, errors=[])
+
+
+
 class CreatePost(graphene.Mutation):
-    """สร้างโพสต์ใหม่"""
+    """Create new post"""
     class Arguments:
         community_name = graphene.String(required=True)
         title = graphene.String(required=True)
         content = graphene.String()
         image_url = graphene.String()
 
+    success = graphene.Boolean()
     post = graphene.Field(PostType)
+    errors = graphene.List(graphene.String)
 
     @login_required
     def mutate(self, info, community_name, title, content=None, image_url=None):
         user = info.context.user
+        errors = []
+        
+        # Validation
+        if len(title) < 3 or len(title) > 300:
+            errors.append("Title must be between 3 and 300 characters.")
+        
         try:
-            # หา community จากชื่อ
             community = Community.objects.get(name=community_name)
         except Community.DoesNotExist:
-            raise Exception("Community not found")
-
+            errors.append("Community not found.")
+            return CreatePost(success=False, errors=errors)
+        
+        if errors:
+            return CreatePost(success=False, errors=errors)
+        
         post = Post.objects.create(
             author=user,
             community=community,
@@ -34,105 +106,139 @@ class CreatePost(graphene.Mutation):
             content=content,
             image_url=image_url
         )
-        return CreatePost(post=post)
+        
+        return CreatePost(success=True, post=post, errors=[])
 
-class CreateComment(graphene.Mutation):
-    """สร้างคอมเมนต์ใหม่ (หรือ reply)"""
+
+class UpdatePost(graphene.Mutation):
+    """Update existing post"""
     class Arguments:
         post_id = graphene.ID(required=True)
-        content = graphene.String(required=True)
-        parent_id = graphene.ID() # ระบุ ID นี้ ถ้าเป็นการ reply comment อื่น
+        title = graphene.String()
+        content = graphene.String()
+        image_url = graphene.String()
 
-    comment = graphene.Field(CommentType)
+    success = graphene.Boolean()
+    post = graphene.Field(PostType)
+    errors = graphene.List(graphene.String)
 
     @login_required
-    def mutate(self, info, post_id, content, parent_id=None):
+    def mutate(self, info, post_id, **kwargs):
         user = info.context.user
+        errors = []
+        
+        try:
+            post = Post.objects.get(pk=post_id, author=user)
+        except Post.DoesNotExist:
+            errors.append("Post not found or you don't have permission.")
+            return UpdatePost(success=False, errors=errors)
+        
+        if 'title' in kwargs:
+            if len(kwargs['title']) < 3 or len(kwargs['title']) > 300:
+                errors.append("Title must be between 3 and 300 characters.")
+            else:
+                post.title = kwargs['title']
+        
+        if 'content' in kwargs:
+            post.content = kwargs['content']
+        
+        if 'image_url' in kwargs:
+            post.image_url = kwargs['image_url']
+        
+        if errors:
+            return UpdatePost(success=False, errors=errors)
+        
+        post.save()
+        return UpdatePost(success=True, post=post, errors=[])
+
+
+class DeletePost(graphene.Mutation):
+    """Delete post"""
+    class Arguments:
+        post_id = graphene.ID(required=True)
+
+    success = graphene.Boolean()
+
+    @login_required
+    def mutate(self, info, post_id):
+        user = info.context.user
+        
         try:
             post = Post.objects.get(pk=post_id)
+            
+            # Check permission
+            if post.author != user and not user.is_staff:
+                return DeletePost(success=False)
+            
+            post.delete()
+            return DeletePost(success=True)
         except Post.DoesNotExist:
-            raise Exception("Post not found")
-        
-        parent = None
-        if parent_id:
-            try:
-                parent = Comment.objects.get(pk=parent_id)
-            except Comment.DoesNotExist:
-                raise Exception("Parent comment not found")
+            return DeletePost(success=False)
 
-        comment = Comment.objects.create(
-            author=user,
-            post=post,
-            content=content,
-            parent=parent
-        )
-        return CreateComment(comment=comment)
 
-class VoteMutation(graphene.Mutation):
-    """
-    Mutation กลางสำหรับโหวต (Up/Down) ทั้ง Post และ Comment
-    """
+class UpdateComment(graphene.Mutation):
+    """Update comment"""
     class Arguments:
-        object_id = graphene.ID(required=True) # ID ของ Post หรือ Comment
-        model_name = graphene.String(required=True) # "post" หรือ "comment"
-        vote_type = graphene.String(required=True) # "up" หรือ "down"
+        comment_id = graphene.ID(required=True)
+        content = graphene.String(required=True)
 
-    # คืนค่า object ที่อัปเดตแล้ว
-    post = graphene.Field(PostType)
+    success = graphene.Boolean()
     comment = graphene.Field(CommentType)
+    errors = graphene.List(graphene.String)
 
     @login_required
-    def mutate(self, info, object_id, model_name, vote_type):
+    def mutate(self, info, comment_id, content):
         user = info.context.user
         
-        if model_name.lower() == 'post':
-            model = Post
-        elif model_name.lower() == 'comment':
-            model = Comment
-        else:
-            raise Exception("Invalid model name")
-
         try:
-            obj = model.objects.get(pk=object_id)
-        except model.DoesNotExist:
-            raise Exception("Object not found")
-
-        # แปลง vote_type จาก frontend ("up", "down") เป็น "UPVOTE", "DOWNVOTE"
-        new_vote_type = Vote.VoteType.UPVOTE if vote_type.lower() == 'up' else Vote.VoteType.DOWNVOTE
-        
-        content_type = ContentType.objects.get_for_model(model)
-        
-        try:
-            # ตรวจสอบว่าเคยโหวตหรือยัง
-            current_vote = Vote.objects.get(
-                user=user, content_type=content_type, object_id=obj.id
-            )
+            comment = Comment.objects.get(pk=comment_id, author=user)
             
-            if current_vote.vote_type == new_vote_type:
-                # ถ้ากดปุ่มเดิมซ้ำ (เช่น กด upvote ซ้ำ) = ยกเลิกโหวต
-                current_vote.delete()
-            else:
-                # ถ้าสลับโหวต (เช่น จาก up เป็น down) = อัปเดตโหวต
-                current_vote.vote_type = new_vote_type
-                current_vote.save()
-        
-        except Vote.DoesNotExist:
-            # ถ้ายังไม่เคยโหวต = สร้างโหวตใหม่
-            Vote.objects.create(
-                user=user,
-                content_type=content_type,
-                object_id=obj.id,
-                vote_type=new_vote_type
+            if not content.strip():
+                return UpdateComment(
+                    success=False, 
+                    errors=["Content cannot be empty."]
+                )
+            
+            comment.content = content
+            comment.save()
+            
+            return UpdateComment(success=True, comment=comment, errors=[])
+        except Comment.DoesNotExist:
+            return UpdateComment(
+                success=False, 
+                errors=["Comment not found or you don't have permission."]
             )
+
+
+class DeleteComment(graphene.Mutation):
+    """Delete comment"""
+    class Arguments:
+        comment_id = graphene.ID(required=True)
+
+    success = graphene.Boolean()
+
+    @login_required
+    def mutate(self, info, comment_id):
+        user = info.context.user
         
-        # คืนค่า object ที่อัปเดตแล้ว (เพื่อให้ frontend อัปเดต UI)
-        obj.refresh_from_db()
-        if model_name.lower() == 'post':
-            return VoteMutation(post=obj)
-        else:
-            return VoteMutation(comment=obj)
+        try:
+            comment = Comment.objects.get(pk=comment_id)
+            
+            # Check permission
+            if comment.author != user and not user.is_staff:
+                return DeleteComment(success=False)
+            
+            comment.delete()
+            return DeleteComment(success=True)
+        except Comment.DoesNotExist:
+            return DeleteComment(success=False)
+
 
 class Mutation(graphene.ObjectType):
     create_post = CreatePost.Field()
-    create_comment = CreateComment.Field()
-    vote = VoteMutation.Field()
+    update_post = UpdatePost.Field()
+    delete_post = DeletePost.Field()
+    create_comment = CreateComment.Field()  # existing
+    update_comment = UpdateComment.Field()
+    delete_comment = DeleteComment.Field()
+    vote = VoteMutation.Field()  # existing

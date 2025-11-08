@@ -1,21 +1,15 @@
 import graphene
 from django.contrib.auth import get_user_model
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.encoding import force_str
-from django.utils.http import urlsafe_base64_decode
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+from graphql_jwt.decorators import login_required
 
-from tasks.email import send_confirmation_email_task
-from .schema import UserType  # Import UserType ที่เราสร้างไว้
+from .types import UserType
 
 User = get_user_model()
 
-
 class RegisterUser(graphene.Mutation):
-    """
-    Mutation สำหรับสมัครสมาชิกใหม่
-    จะเรียก Background Task ให้ส่งอีเมลยืนยัน
-    """
-
+    """Register new user"""
     class Arguments:
         username = graphene.String(required=True)
         email = graphene.String(required=True)
@@ -28,83 +22,168 @@ class RegisterUser(graphene.Mutation):
     @classmethod
     def mutate(cls, root, info, username, email, password):
         errors = []
+        
+        # Validation
         if User.objects.filter(username=username).exists():
             errors.append("Username already exists.")
-
+        
         if User.objects.filter(email=email).exists():
             errors.append("Email already exists.")
-
+        
+        try:
+            validate_password(password)
+        except ValidationError as e:
+            errors.extend(e.messages)
+        
         if errors:
             return cls(success=False, errors=errors)
-
+        
         try:
-            user = User.objects.create_user(username=username, email=email, password=password, is_active=False)
-
-            # --- 4. เรียกใช้ Task แบบ Asynchronous ---
-            # .defer() จะส่งงานนี้ให้ Worker ทันที
-            send_confirmation_email_task.delay(user_id=user.id)
-            # ----------------------------------------
-
-            return cls(success=True, user=user)
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                is_active=True  # หรือ False ถ้าต้องการ email verification
+            )
+            
+            # Send confirmation email (async task)
+            # send_confirmation_email_task.delay(user_id=user.id)
+            
+            return cls(success=True, user=user, errors=[])
         except Exception as e:
             return cls(success=False, errors=[str(e)])
 
 
-# --- 5. อัปเดต SendConfirmationEmail (ตอนนี้ทำหน้าที่ "ส่งซ้ำ") ---
-class SendConfirmationEmail(graphene.Mutation):
-    """
-    Mutation สำหรับ "ส่งอีเมลยืนยันตัวตนซ้ำ"
-    """
-
+class UpdateProfile(graphene.Mutation):
+    """Update user profile"""
     class Arguments:
-        email = graphene.String(required=True)
+        bio = graphene.String()
+        profile_picture = graphene.String()
+        banner_image = graphene.String()
 
     success = graphene.Boolean()
+    user = graphene.Field(UserType)
+    errors = graphene.List(graphene.String)
 
-    @classmethod
-    def mutate(cls, root, info, email):
+    @login_required
+    def mutate(self, info, **kwargs):
+        user = info.context.user
+        errors = []
+        
         try:
-            user = User.objects.get(email=email, is_active=False)
-        except User.DoesNotExist:
-            # ไม่เจอ User หรือ User Active ไปแล้ว
-            # เราควรตอบ success เสมอ เพื่อความปลอดภัย
-            return cls(success=True)
+            if 'bio' in kwargs:
+                if len(kwargs['bio']) > 500:
+                    errors.append("Bio must be less than 500 characters.")
+                else:
+                    user.bio = kwargs['bio']
+            
+            if 'profile_picture' in kwargs:
+                user.profile_picture = kwargs['profile_picture']
+            
+            if 'banner_image' in kwargs:
+                user.banner_image = kwargs['banner_image']
+            
+            if errors:
+                return UpdateProfile(success=False, errors=errors)
+            
+            user.save()
+            return UpdateProfile(success=True, user=user, errors=[])
+        except Exception as e:
+            return UpdateProfile(success=False, errors=[str(e)])
 
-        # --- เรียกใช้ Task แบบ Asynchronous ---
-        send_confirmation_email_task.delay(user_id=user.id)
-        # -------------------------------------
 
-        return cls(success=True)
-
-
-# --- (VerifyEmail Mutation ไม่มีการเปลี่ยนแปลง) ---
-class VerifyEmail(graphene.Mutation):
+class UpdateSettings(graphene.Mutation):
+    """Update user settings"""
     class Arguments:
-        uidb64 = graphene.String(required=True)
-        token = graphene.String(required=True)
+        notifications_enabled = graphene.Boolean()
+        dark_mode = graphene.Boolean()
 
     success = graphene.Boolean()
     user = graphene.Field(UserType)
 
-    @classmethod
-    def mutate(cls, root, info, uidb64, token):
+    @login_required
+    def mutate(self, info, **kwargs):
+        user = info.context.user
+        
+        if 'notifications_enabled' in kwargs:
+            user.notifications_enabled = kwargs['notifications_enabled']
+        
+        if 'dark_mode' in kwargs:
+            user.dark_mode = kwargs['dark_mode']
+        
+        user.save()
+        return UpdateSettings(success=True, user=user)
+
+
+class FollowUser(graphene.Mutation):
+    """Follow/Unfollow user"""
+    class Arguments:
+        username = graphene.String(required=True)
+
+    success = graphene.Boolean()
+    is_following = graphene.Boolean()
+    follower_count = graphene.Int()
+
+    @login_required
+    def mutate(self, info, username):
+        current_user = info.context.user
+        
         try:
-            uid = force_str(urlsafe_base64_decode(uidb64))
-            user = User.objects.get(pk=uid)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            user = None
+            target_user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return FollowUser(success=False)
+        
+        if current_user == target_user:
+            return FollowUser(success=False)
+        
+        # Toggle follow
+        if current_user.following.filter(id=target_user.id).exists():
+            current_user.following.remove(target_user)
+            is_following = False
+        else:
+            current_user.following.add(target_user)
+            is_following = True
+        
+        return FollowUser(
+            success=True,
+            is_following=is_following,
+            follower_count=target_user.follower_count
+        )
 
-        if user is not None and default_token_generator.check_token(user, token):
-            user.is_active = True
-            user.email_verified = True
-            user.save()
-            return cls(success=True, user=user)
 
-        return cls(success=False, user=None)
+class ChangePassword(graphene.Mutation):
+    """Change user password"""
+    class Arguments:
+        old_password = graphene.String(required=True)
+        new_password = graphene.String(required=True)
+
+    success = graphene.Boolean()
+    errors = graphene.List(graphene.String)
+
+    @login_required
+    def mutate(self, info, old_password, new_password):
+        user = info.context.user
+        errors = []
+        
+        if not user.check_password(old_password):
+            errors.append("Current password is incorrect.")
+            return ChangePassword(success=False, errors=errors)
+        
+        try:
+            validate_password(new_password, user=user)
+        except ValidationError as e:
+            errors.extend(e.messages)
+            return ChangePassword(success=False, errors=errors)
+        
+        user.set_password(new_password)
+        user.save()
+        
+        return ChangePassword(success=True, errors=[])
 
 
-# --- (คลาส UserMutation หลัก ไม่มีการเปลี่ยนแปลง) ---
 class UserMutation(graphene.ObjectType):
     register_user = RegisterUser.Field()
-    send_confirmation_email = SendConfirmationEmail.Field()
-    verify_email = VerifyEmail.Field()
+    update_profile = UpdateProfile.Field()
+    update_settings = UpdateSettings.Field()
+    follow_user = FollowUser.Field()
+    change_password = ChangePassword.Field()

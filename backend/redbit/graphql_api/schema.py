@@ -1,24 +1,33 @@
 import graphene
+from graphql_api.communities.mutations import CommunityMutation
 from graphql_api.communities.schema import CommunityQuery
-from graphql_api.posts.schema import Query as PostsQuery
+from graphql_api.posts.mutations import Mutation as PostMutation
+from graphql_api.posts.schema import PostQuery
+from graphql_api.search.schema import SearchQuery
 from graphql_api.users.mutations import UserMutation
 from graphql_api.users.schema import UserQuery
 
 from .jwt import AuthMutation
 
 
-# Query หลัก รวมทุก Query-App และ graphene.ObjectType
-class Query(UserQuery, CommunityQuery, PostsQuery, graphene.ObjectType):
+# Combine all queries
+class Query(
+    UserQuery, 
+    PostQuery, 
+    CommunityQuery,
+    SearchQuery,
+    graphene.ObjectType
+):
     pass
 
-
-# Mutation หลัก รวมทุก Mutation-App และ graphene.ObjectType
-class Mutation(AuthMutation, UserMutation, graphene.ObjectType):
+# Combine all mutations
+class Mutation(
+    AuthMutation,
+    UserMutation, 
+    PostMutation,
+    CommunityMutation,
+    graphene.ObjectType
+):
     pass
 
-
-schema = graphene.Schema(
-    query=Query,
-    mutation=Mutation,
-)
-
+schema = graphene.Schema(query=Query, mutation=Mutation)

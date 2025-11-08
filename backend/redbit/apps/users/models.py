@@ -3,43 +3,48 @@ from django.db import models
 
 
 class User(AbstractUser):
-    # Field ที่เรามีอยู่แล้ว
     email = models.EmailField(unique=True)
-
-    # --- 1. Profile Fields ---
+    
+    # Profile Fields
     bio = models.TextField(blank=True, null=True, max_length=500)
-
-    # อย่าลืมติดตั้ง Pillow และตั้งค่า MEDIA_ROOT
-    profile_picture = models.ImageField(upload_to="avatars/", null=True, blank=True)
-    banner_image = models.ImageField(upload_to="banners/", null=True, blank=True)
-
-    # --- 2. Karma System ---
+    profile_picture = models.URLField(blank=True, null=True)  # เปลี่ยนเป็น URL
+    banner_image = models.URLField(blank=True, null=True)
+    
+    # Karma System
     post_karma = models.IntegerField(default=0)
     comment_karma = models.IntegerField(default=0)
-
-    # --- 3. Follow System ---
-    # symmetrical=False บอกว่า ถ้า A follow B, ไม่ได้แปลว่า B follow A
-    following = models.ManyToManyField("self", symmetrical=False, related_name="followers", blank=True)
-
-    # --- 4. Utility Fields ---
+    
+    # Follow System
+    following = models.ManyToManyField(
+        "self", 
+        symmetrical=False, 
+        related_name="followers", 
+        blank=True
+    )
+    
+    # Utility Fields
     email_verified = models.BooleanField(default=False)
-
+    is_online = models.BooleanField(default=False)
+    last_seen = models.DateTimeField(auto_now=True)
+    
+    # Settings
+    notifications_enabled = models.BooleanField(default=True)
+    dark_mode = models.BooleanField(default=False)
+    
     class Meta(AbstractUser.Meta):
-        db_table = "user"  # ชื่อตารางตามที่เราตกลงกัน
+        db_table = "user"
 
     def __str__(self):
         return self.username
 
-    # --- Methods (ตัวอย่าง) ---
     @property
     def total_karma(self):
-        """
-        Method เสมือน (property) สำหรับรวมคะแนน Karma ทั้งหมด
-        """
         return self.post_karma + self.comment_karma
 
-    def get_follower_count(self):
+    @property
+    def follower_count(self):
         return self.followers.count()
 
-    def get_following_count(self):
+    @property
+    def following_count(self):
         return self.following.count()
