@@ -43,6 +43,11 @@ dev = [
 requires = ["setuptools>=61.0.0"]
 build-backend = "setuptools.build_meta"
 
+[dependency-groups]
+dev = [
+    "graphene-file-upload>=1.3.0",
+]
+
 # ==================================
 # การตั้งค่าสำหรับ uv และเครื่องมืออื่น ๆ
 # ==================================

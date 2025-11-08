@@ -2,7 +2,7 @@ import datetime
 
 from apps import APPS_MODULE_NAME, APPS_THIRD_PARTY
 
-from .base import *
+from .base import *  # Ruff: noqa
 
 KEYS_DIR = BASE_DIR.parent.parent / "keys"
 PRIVATE_KEY_PATH = KEYS_DIR / "private_key.pem"
@@ -25,13 +25,17 @@ except FileNotFoundError:
 
 INSTALLED_APPS += APPS_MODULE_NAME + APPS_THIRD_PARTY
 AUTH_USER_MODEL = "users.User"
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8081",
     "http://127.0.0.1:8081",
-    "http://10.126.34.63:8081",   # Expo web ผ่าน IP จริง
+    "http://10.126.34.63:8081",  # Expo web ผ่าน IP จริง
     "http://10.126.34.63:19006",  # Expo Go (dev app)
 ]
 CORS_ALLOW_ALL_ORIGINS = True  # คงไว้ตอน dev ก็ได้
+CORS_ALLOW_CREDENTIALS = True
+CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken", "Authorization"]
+
 MEDIA_URL = "/media/"
 
 CORS_ALLOW_ALL_ORIGINS = True
@@ -89,3 +93,13 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": env("REDIS_LOCATION", default="redis://redis:6379/0"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
+}

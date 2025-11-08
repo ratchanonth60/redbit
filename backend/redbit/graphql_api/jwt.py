@@ -1,5 +1,6 @@
 import graphene
 import graphql_jwt
+from graphql_jwt.refresh_token.shortcuts import refresh_token_lazy
 
 
 # สร้างคลาสสำหรับ Auth Mutations
