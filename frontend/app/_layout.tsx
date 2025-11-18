@@ -1,7 +1,7 @@
 import "../global.css";
 import React, { useEffect, useState } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
-import { View, Text, TouchableOpacity, Platform, ActivityIndicator } from "react-native";
+import { View, Platform, ActivityIndicator } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ApolloClient, InMemoryCache, HttpLink } from "@apollo/client";
@@ -28,7 +28,7 @@ const authLink = setContext(async (_, { headers }) => {
   };
 });
 
-import Constants from "expo-constants";
+
 
 const getBaseUrl = () => {
   if (Platform.OS === 'web') return "http://localhost:8000/graphql/";
@@ -42,21 +42,7 @@ const client = new ApolloClient({
   cache: new InMemoryCache(),
 });
 
-function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
-  return (
-    <View className="flex-1 items-center justify-center p-6">
-      <Text className="text-text text-xl font-bold mb-4">
-        Oops! Something went wrong
-      </Text>
-      <TouchableOpacity
-        className="bg-upvote px-6 py-3 rounded-full"
-        onPress={resetErrorBoundary}
-      >
-        <Text className="text-white font-bold">Try again</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
+
 
 function RootLayoutNav() {
   const [isLoading, setIsLoading] = useState(true);
@@ -87,7 +73,7 @@ function RootLayoutNav() {
     };
 
     checkAuth();
-  }, [segments]);
+  }, [segments, router]);
 
   if (isLoading) {
     return (

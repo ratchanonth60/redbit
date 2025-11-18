@@ -50,7 +50,7 @@ interface NotificationsData {
 }
 
 export default function NotificationsScreen() {
-    const { loading, error, data, refetch } = useQuery<NotificationsData>(GET_NOTIFICATIONS, {
+    const { loading, data, refetch } = useQuery<NotificationsData>(GET_NOTIFICATIONS, {
         pollInterval: 10000, // Poll every 10s
     });
     const [markRead] = useMutation(MARK_READ_MUTATION);

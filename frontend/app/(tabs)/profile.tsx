@@ -63,7 +63,8 @@ export default function ProfileScreen() {
       await SecureStore.deleteItemAsync('token');
       await client.resetStore();
       router.replace('/auth/login');
-    } catch (e) {
+    } catch (error) {
+      console.error(error);
       Alert.alert('Error', 'Failed to logout.');
     }
   };

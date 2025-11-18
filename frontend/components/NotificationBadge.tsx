@@ -2,17 +2,19 @@ import { View, Text } from 'react-native';
 import { useQuery } from '@apollo/client/react';
 import { gql } from '@apollo/client';
 
-const GET_UNREAD_NOTIFICATIONS = gql`
-  query UnreadNotifications {
-    unreadNotifications {
-      id
-    }
+const GET_UNREAD_COUNT = gql`
+  query UnreadCount {
+    unreadCount
   }
 `;
 
+interface UnreadCountData {
+  unreadCount: number;
+}
+
 export function NotificationBadge() {
-  const { data } = useQuery(GET_UNREAD_NOTIFICATIONS);
-  const unreadCount = data?.unreadNotifications?.length || 0;
+  const { data } = useQuery<UnreadCountData>(GET_UNREAD_COUNT);
+  const unreadCount = data?.unreadCount || 0;
 
   if (unreadCount === 0) return null;
 

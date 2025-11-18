@@ -1,5 +1,5 @@
 import { gql } from "@apollo/client";
-import { View, FlatList, Text } from 'react-native';
+import { FlatList } from 'react-native';
 import PostCard from '@/components/PostCard';
 
 const GET_USER_POSTS = gql`
@@ -16,7 +16,7 @@ const GET_USER_POSTS = gql`
 
 export default function UserPostsScreen() {
   const { user } = useAuth();
-  const { data, loading } = useQuery(GET_USER_POSTS, {
+  const { data } = useQuery(GET_USER_POSTS, {
     variables: { username: user?.username }
   });
 

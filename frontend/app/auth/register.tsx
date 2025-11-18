@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useMutation } from '@apollo/client/react';
 import { gql } from '@apollo/client';
 import { router } from 'expo-router';

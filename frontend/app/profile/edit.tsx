@@ -3,7 +3,7 @@ import { Camera } from 'lucide-react-native';
 export default function EditProfileScreen() {
   const { user } = useAuth();
   const [bio, setBio] = useState(user?.bio || '');
-  const [avatar, setAvatar] = useState(user?.profilePicture);
+  const [avatar,] = useState(user?.profilePicture || null);
 
   const [updateProfile, { loading }] = useMutation(UPDATE_PROFILE_MUTATION);
 
