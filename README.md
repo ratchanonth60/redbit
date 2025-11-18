@@ -78,4 +78,4 @@ redbit/
 - **Admin Panel:** Access Django Admin at http://localhost:8000/admin/
 
 ---
-*Built with ❤️ by Antigravity*
+*Built with ❤️ by NoobMaster*
