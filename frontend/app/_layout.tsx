@@ -1,7 +1,7 @@
 import "../global.css";
-import React, { useEffect, useState } from "react";
-import { Stack, useRouter, useSegments } from "expo-router";
-import { View, Platform, ActivityIndicator } from "react-native";
+import React, { useEffect } from "react";
+import { Stack, useRouter, useSegments, useRootNavigationState } from "expo-router";
+import { View, Platform } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ApolloClient, InMemoryCache, HttpLink } from "@apollo/client";
@@ -45,11 +45,13 @@ const client = new ApolloClient({
 
 
 function RootLayoutNav() {
-  const [isLoading, setIsLoading] = useState(true);
   const segments = useSegments();
   const router = useRouter();
+  const navigationState = useRootNavigationState();
 
   useEffect(() => {
+    if (!navigationState?.key) return;
+
     const checkAuth = async () => {
       let token;
       if (Platform.OS === 'web') {
@@ -69,19 +71,11 @@ function RootLayoutNav() {
         router.replace('/(tabs)' as any);
       }
 
-      setIsLoading(false);
+      await SplashScreen.hideAsync();
     };
 
     checkAuth();
-  }, [segments, router]);
-
-  if (isLoading) {
-    return (
-      <View className="flex-1 justify-center items-center bg-background">
-        <ActivityIndicator size="large" color="#D93A00" />
-      </View>
-    );
-  }
+  }, [segments, router, navigationState?.key]);
 
   const isAuthGroup = segments[0] === 'auth';
 
@@ -98,10 +92,6 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  useEffect(() => {
-    SplashScreen.hideAsync();
-  }, []);
-
   return (
     <ApolloProvider client={client}>
       <GestureHandlerRootView style={{ flex: 1 }}>

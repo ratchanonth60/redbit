@@ -7,6 +7,7 @@ class CommunityType(DjangoObjectType):
     member_count = graphene.Int()
     post_count = graphene.Int()
     is_member = graphene.Boolean()
+    icon = graphene.String()
     
     class Meta:
         model = Community
@@ -23,3 +24,8 @@ class CommunityType(DjangoObjectType):
         if not user.is_authenticated:
             return False
         return self.members.filter(id=user.id).exists()
+
+    def resolve_icon(self, info):
+        # Return a default icon or None for now
+        # In the future, this should come from the model
+        return "https://ui-avatars.com/api/?name=" + self.name + "&background=random"
