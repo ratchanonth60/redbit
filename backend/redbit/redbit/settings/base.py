@@ -31,6 +31,8 @@ DEBUG = env.bool("DEBUG")
 
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])  # type: ignore
 
+CORS_ALLOW_ALL_ORIGINS = True
+
 
 # Application definition
 

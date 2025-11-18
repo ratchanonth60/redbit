@@ -1,19 +1,25 @@
 const Colors = {
   light: {
+    background: "#ffffff",
+    text: "#000000",
+    textSecondary: "#777777",
+    card: "#f8f8f8",
+    border: "#cccccc",
     upvote: "#ff4500",
-    textSecondary: "#777",
-    card: "#fff",
-    border: "#ccc",
-    card: "#f8f8f8", // (ค่าสีสมมติ)
-    border: "#ccc", // (ค่าสีสมมติ)
-    textSecondary: "gray", // (ค่าสีสมมติ)
-    upvote: "#FF4500", // (ค่าสีสมมติ)
+    downvote: "#7193ff",
+    icon: "#333333",
+    tint: "#ff4500",
   },
   dark: {
+    background: "#000000",
+    text: "#ffffff",
+    textSecondary: "#aaaaaa",
+    card: "#1a1a1a",
+    border: "#333333",
     upvote: "#ff5722",
-    textSecondary: "#aaa",
-    card: "#000",
-    border: "#333",
+    downvote: "#7193ff",
+    icon: "#ffffff",
+    tint: "#ff5722",
   },
 };
 

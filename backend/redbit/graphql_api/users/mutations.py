@@ -2,6 +2,7 @@ import graphene
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from graphql_jwt.decorators import login_required
 
 from .types import UserType
@@ -24,6 +25,12 @@ class RegisterUser(graphene.Mutation):
         errors = []
         
         # Validation
+        if len(username) < 3 or len(username) > 30:
+            errors.append("Username must be between 3 and 30 characters.")
+        
+        if not username.isalnum() and "_" not in username:
+             errors.append("Username can only contain letters, numbers, and underscores.")
+            
         if User.objects.filter(username=username).exists():
             errors.append("Username already exists.")
         
@@ -78,10 +85,24 @@ class UpdateProfile(graphene.Mutation):
                     user.bio = kwargs['bio']
             
             if 'profile_picture' in kwargs:
-                user.profile_picture = kwargs['profile_picture']
+                url = kwargs['profile_picture']
+                if url:
+                    val = URLValidator()
+                    try:
+                        val(url)
+                    except ValidationError:
+                        errors.append("Invalid profile picture URL.")
+                user.profile_picture = url
             
             if 'banner_image' in kwargs:
-                user.banner_image = kwargs['banner_image']
+                url = kwargs['banner_image']
+                if url:
+                    val = URLValidator()
+                    try:
+                        val(url)
+                    except ValidationError:
+                        errors.append("Invalid banner image URL.")
+                user.banner_image = url
             
             if errors:
                 return UpdateProfile(success=False, errors=errors)

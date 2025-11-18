@@ -1,3 +1,5 @@
+import { View, Text, TextInput, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { Camera } from 'lucide-react-native';
 export default function EditProfileScreen() {
   const { user } = useAuth();
   const [bio, setBio] = useState(user?.bio || '');
@@ -17,8 +19,8 @@ export default function EditProfileScreen() {
     <ScrollView className="flex-1 bg-background">
       <View className="items-center py-6">
         <TouchableOpacity onPress={pickAvatar}>
-          <Image 
-            source={{ uri: avatar }} 
+          <Image
+            source={{ uri: avatar }}
             className="w-24 h-24 rounded-full"
           />
           <View className="absolute bottom-0 right-0 bg-upvote p-2 rounded-full">

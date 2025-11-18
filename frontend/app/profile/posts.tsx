@@ -1,4 +1,6 @@
 import { gql } from "@apollo/client";
+import { View, FlatList, Text } from 'react-native';
+import PostCard from '@/components/PostCard';
 
 const GET_USER_POSTS = gql`
   query GetUserPosts($username: String!) {

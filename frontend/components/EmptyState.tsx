@@ -1,8 +1,21 @@
-export function EmptyState({ 
-  icon: Icon, 
-  title, 
+import { View, Text, TouchableOpacity } from 'react-native';
+import Colors from '@/constants/colors';
+
+interface EmptyStateProps {
+  icon: any;
+  title: string;
+  description: string;
+  action?: {
+    label: string;
+    onPress: () => void;
+  };
+}
+
+export function EmptyState({
+  icon: Icon,
+  title,
   description,
-  action 
+  action
 }: EmptyStateProps) {
   return (
     <View className="flex-1 items-center justify-center p-8">
@@ -14,7 +27,7 @@ export function EmptyState({
         {description}
       </Text>
       {action && (
-        <TouchableOpacity 
+        <TouchableOpacity
           className="bg-upvote px-6 py-3 rounded-full mt-6"
           onPress={action.onPress}
         >

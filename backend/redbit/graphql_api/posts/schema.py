@@ -31,33 +31,35 @@ class PostQuery(graphene.ObjectType):
     my_posts = graphene.List(PostType)
 
     def resolve_all_posts(self, info, sort_by="new", community=None, search=None, limit=20, offset=0):
+        from django.db import models
+        from django.db.models import Count, Q
+
         queryset = Post.objects.select_related("author", "community").prefetch_related("votes")
 
         # Filter by community
         if community:
-            queryset = queryset.filter(community__name=community)
+            queryset = queryset.filter(Q(community__name=community) | Q(community__slug=community))
 
         # Search
         if search:
-            queryset = queryset.filter(title__icontains=search) | queryset.filter(content__icontains=search)
+            queryset = queryset.filter(Q(title__icontains=search) | Q(content__icontains=search))
 
         # Sort
         if sort_by == "hot":
             # Simple hot algorithm: upvotes / age
             from datetime import timedelta
-
-            from django.db.models import Count, ExpressionWrapper, F, fields
+            from django.db.models import ExpressionWrapper, F, fields
             from django.utils import timezone
 
             queryset = queryset.annotate(
-                upvote_count=Count("votes", filter=models.Q(votes__value=1)),
+                upvote_count=Count("votes", filter=Q(votes__value=1)),
                 age_hours=ExpressionWrapper(
                     (timezone.now() - F("created_at")) / timedelta(hours=1), output_field=fields.FloatField()
                 ),
                 hot_score=ExpressionWrapper(F("upvote_count") / (F("age_hours") + 2), output_field=fields.FloatField()),
             ).order_by("-hot_score")
         elif sort_by == "top":
-            queryset = queryset.annotate(upvote_count=Count("votes", filter=models.Q(votes__value=1))).order_by(
+            queryset = queryset.annotate(upvote_count=Count("votes", filter=Q(votes__value=1))).order_by(
                 "-upvote_count"
             )
         else:  # new

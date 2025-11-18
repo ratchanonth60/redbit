@@ -29,12 +29,12 @@ class Post(TimestampedModel):
     @property
     def upvotes_count(self):
         """นับคะแนนโหวต (คำนวณจากระบบ Vote)"""
-        return self.votes.filter(vote_type=Vote.VoteType.UPVOTE).count()
+        return self.votes.filter(value=Vote.VoteType.UPVOTE).count()
 
     @property
     def downvotes_count(self):
         """นับคะแนนโหวตลง"""
-        return self.votes.filter(vote_type=Vote.VoteType.DOWNVOTE).count()
+        return self.votes.filter(value=Vote.VoteType.DOWNVOTE).count()
 
     @property
     def total_votes(self):

@@ -14,6 +14,7 @@ class PostType(DjangoObjectType):
     # Custom fields ให้ตรงกับ frontend types/post.ts
     time_ago = graphene.String()
     upvotes = graphene.Int()
+    vote_count = graphene.Int()
     comment_count = graphene.Int()
     user_vote = graphene.String()  # "up", "down", หรือ null
 
@@ -37,6 +38,9 @@ class PostType(DjangoObjectType):
         """ดึงคะแนนโหวตสุทธิจาก property ของ model"""
         return self.total_votes
 
+    def resolve_vote_count(self, info):
+        return self.total_votes
+
     def resolve_comment_count(self, info):
         """ดึงจำนวนคอมเมนต์จาก property ของ model"""
         return self.comment_count
@@ -53,7 +57,7 @@ class PostType(DjangoObjectType):
             vote = self.votes.get(user=user)
             # VoteType ใน model ของคุณคือ "UPVOTE" หรือ "DOWNVOTE"
             # frontend คาดหวัง "up" หรือ "down"
-            return "up" if vote.vote_type == Vote.VoteType.UPVOTE else "down"
+            return "up" if vote.value == Vote.VoteType.UPVOTE else "down"
         except Vote.DoesNotExist:
             return None
 
@@ -92,7 +96,7 @@ class CommentType(DjangoObjectType):
             return None
         try:
             vote = self.votes.get(user=user)
-            return "up" if vote.value = 1 else "down"
+            return "up" if vote.value == 1 else "down"
         except Vote.DoesNotExist:
             return None
 

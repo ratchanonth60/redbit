@@ -24,6 +24,8 @@ dependencies = [
     "celery[redis]",
     "cryptography>=46.0.3",
     "django-cors-headers>=4.9.0",
+    "graphene-file-upload>=1.3.0",
+    "django-redis>=5.4.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -43,10 +45,7 @@ dev = [
 requires = ["setuptools>=61.0.0"]
 build-backend = "setuptools.build_meta"
 
-[dependency-groups]
-dev = [
-    "graphene-file-upload>=1.3.0",
-]
+
 
 # ==================================
 # การตั้งค่าสำหรับ uv และเครื่องมืออื่น ๆ

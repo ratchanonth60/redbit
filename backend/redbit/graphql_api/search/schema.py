@@ -31,7 +31,7 @@ class SearchQuery(graphene.ObjectType):
         communities = Community.objects.filter(
             models.Q(name__icontains=query) | 
             models.Q(description__icontains=query)
-        )[:limit]
+        ).select_related('owner')[:limit]
         
         # Search users
         users = User.objects.filter(

@@ -47,22 +47,22 @@ class UserQuery(graphene.ObjectType):
 
     @login_required
     def resolve_my_followers(self, info):
-        return info.context.user.followers.all()
+        return info.context.user.followers.all()[:50]
 
     @login_required
     def resolve_my_following(self, info):
-        return info.context.user.following.all()
+        return info.context.user.following.all()[:50]
 
     def resolve_user_followers(self, info, username):
         try:
             user = User.objects.get(username=username)
-            return user.followers.all()
+            return user.followers.all()[:50]
         except User.DoesNotExist:
             return []
 
     def resolve_user_following(self, info, username):
         try:
             user = User.objects.get(username=username)
-            return user.following.all()
+            return user.following.all()[:50]
         except User.DoesNotExist:
             return []

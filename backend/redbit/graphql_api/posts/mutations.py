@@ -2,6 +2,8 @@ import graphene
 from apps.communities.models import Community
 from apps.posts.models import Comment, Post
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from graphql_jwt.decorators import login_required
 from graphene_file_upload.scalars import Upload
 from .types import CommentType, PostType
@@ -96,6 +98,13 @@ class CreatePost(graphene.Mutation):
         if len(title) < 3 or len(title) > 300:
             errors.append("Title must be between 3 and 300 characters.")
 
+        if image_url:
+            val = URLValidator()
+            try:
+                val(image_url)
+            except ValidationError:
+                errors.append("Invalid image URL.")
+
         try:
             community = Community.objects.get(name=community_name)
         except Community.DoesNotExist:
@@ -146,7 +155,14 @@ class UpdatePost(graphene.Mutation):
             post.content = kwargs["content"]
 
         if "image_url" in kwargs:
-            post.image_url = kwargs["image_url"]
+            image_url = kwargs["image_url"]
+            if image_url:
+                val = URLValidator()
+                try:
+                    val(image_url)
+                except ValidationError:
+                    errors.append("Invalid image URL.")
+            post.image_url = image_url
 
         if errors:
             return UpdatePost(success=False, errors=errors)

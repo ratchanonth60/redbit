@@ -42,8 +42,8 @@
 # --- Variables ---
 BACKEND_DIR = backend
 FRONTEND_DIR = frontend
-DOCKER_COMPOSE = docker-compose -f $(BACKEND_DIR)/docker-compose.yml -f $(BACKEND_DIR)/docker-compose.override.yml
-DOCKER_COMPOSE_PROD = docker-compose -f $(BACKEND_DIR)/docker-compose.yml
+DOCKER_COMPOSE = docker-compose -f docker-compose.yml -f docker-compose.override.yml
+DOCKER_COMPOSE_PROD = docker-compose -f docker-compose.yml
 
 # Colors for output
 GREEN = \033[0;32m
@@ -110,183 +110,24 @@ dev-frontend:
 	@printf "$(GREEN)📱 Starting Frontend (Expo)...$(NC)\n"
 	@if [ ! -d "$(FRONTEND_DIR)/node_modules" ]; then \
 		printf "$(YELLOW)Installing frontend dependencies...$(NC)\n"; \
-		cd $(FRONTEND_DIR) && npm install; \
+		cd $(FRONTEND_DIR) && npm install || exit 1; \
 	fi
-	cd $(FRONTEND_DIR) && npm start
-
-.PHONY: stop
-stop:
-	@printf "$(RED)🛑 Stopping all services...$(NC)\n"
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) down
-	@printf "$(GREEN)✅ All services stopped$(NC)\n"
-
-# --- Backend Specific Commands ---
-
-.PHONY: backend-logs
-backend-logs:
-	@printf "$(GREEN)📋 Viewing backend logs...$(NC)\n"
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) logs -f web
-
-.PHONY: backend-shell
-backend-shell:
-	@printf "$(GREEN)🐚 Opening backend shell...$(NC)\n"
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) exec web /bin/bash
-
-cmd = ""
-.PHONY: backend-manage
-backend-manage:
-	@printf "$(GREEN)⚙️  Running Django command: $(cmd)$(NC)\n"
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) exec web python manage.py $(cmd)
-
-.PHONY: migrate
-migrate:
-	@printf "$(GREEN)🔄 Running migrations...$(NC)\n"
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) exec web python manage.py migrate
-
-.PHONY: makemigrations
-makemigrations:
-	@printf "$(GREEN)📝 Creating migrations...$(NC)\n"
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) exec web python manage.py makemigrations
-
-.PHONY: superuser
-superuser:
-	@printf "$(GREEN)👤 Creating superuser...$(NC)\n"
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) exec web python manage.py createsuperuser
-
-.PHONY: collectstatic
-collectstatic:
-	@printf "$(GREEN)📦 Collecting static files...$(NC)\n"
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) exec web python manage.py collectstatic --noinput
-
-.PHONY: worker-logs
-worker-logs:
-	@printf "$(GREEN)📋 Viewing Celery worker logs...$(NC)\n"
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) logs -f worker
-
-# --- Frontend Specific Commands ---
-
-.PHONY: frontend-install
-frontend-install:
-	@printf "$(GREEN)📦 Installing frontend dependencies...$(NC)\n"
-	cd $(FRONTEND_DIR) && npm install
-
-.PHONY: frontend-clean
-frontend-clean:
-	@printf "$(RED)🧹 Cleaning frontend cache...$(NC)\n"
-	cd $(FRONTEND_DIR) && rm -rf node_modules .expo .expo-shared
-	@printf "$(GREEN)✅ Frontend cleaned$(NC)\n"
-
-.PHONY: frontend-update
-frontend-update:
-	@printf "$(GREEN)🔄 Updating frontend dependencies...$(NC)\n"
-	cd $(FRONTEND_DIR) && npm update
+	@cd $(FRONTEND_DIR) && npm start
 
 .PHONY: ios
 ios:
 	@printf "$(GREEN)🍎 Starting iOS simulator...$(NC)\n"
-	cd $(FRONTEND_DIR) && npx expo start --ios
+	cd $(FRONTEND_DIR) && npm run ios
 
 .PHONY: android
 android:
 	@printf "$(GREEN)🤖 Starting Android emulator...$(NC)\n"
-	cd $(FRONTEND_DIR) && npx expo start --android
+	cd $(FRONTEND_DIR) && npm run android
 
 .PHONY: web
 web:
 	@printf "$(GREEN)🌐 Starting web version...$(NC)\n"
-	cd $(FRONTEND_DIR) && npx expo start --web
-
-# --- Database Commands ---
-
-.PHONY: db-shell
-db-shell:
-	@printf "$(GREEN)🗄️  Opening PostgreSQL shell...$(NC)\n"
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) exec db psql -U $POSTGRES_USER -d $POSTGRES_DB
-
-.PHONY: db-backup
-db-backup:
-	@printf "$(GREEN)💾 Backing up database...$(NC)\n"
-	@mkdir -p backups
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) exec -T db pg_dump -U $POSTGRES_USER $POSTGRES_DB > ../backups/backup_$(date +%Y%m%d_%H%M%S).sql
-	@printf "$(GREEN)✅ Database backed up to backups/$(NC)\n"
-
-file = ""
-.PHONY: db-restore
-db-restore:
-	@printf "$(RED)⚠️  Restoring database from $(file)...$(NC)\n"
-	@if [ -z "$(file)" ]; then \
-		printf "$(RED)Error: Please specify file=path/to/backup.sql$(NC)\n"; \
-		exit 1; \
-	fi
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) exec -T db psql -U $POSTGRES_USER -d $POSTGRES_DB < ../$(file)
-	@printf "$(GREEN)✅ Database restored$(NC)\n"
-
-.PHONY: db-reset
-db-reset:
-	@printf "$(RED)⚠️  Resetting database...$(NC)\n"
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) down -v
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) up -d db
-	@sleep 5
-	$(MAKE) migrate
-	@printf "$(GREEN)✅ Database reset complete$(NC)\n"
-
-# --- Production Commands ---
-
-.PHONY: prod-up
-prod-up:
-	@printf "$(GREEN)🚀 Starting production services...$(NC)\n"
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE_PROD) up -d --build
-	@printf "$(GREEN)✅ Production services started$(NC)\n"
-
-.PHONY: prod-down
-prod-down:
-	@printf "$(RED)🛑 Stopping production services...$(NC)\n"
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE_PROD) down
-
-.PHONY: prod-logs
-prod-logs:
-	@printf "$(GREEN)📋 Viewing production logs...$(NC)\n"
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE_PROD) logs -f
-
-.PHONY: prod-shell
-prod-shell:
-	@printf "$(GREEN)🐚 Opening production shell...$(NC)\n"
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE_PROD) exec web /bin/bash
-
-# --- Utility Commands ---
-
-.PHONY: logs
-logs:
-	@printf "$(GREEN)📋 Viewing all logs...$(NC)\n"
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) logs -f
-
-.PHONY: ps
-ps:
-	@printf "$(GREEN)📊 Container Status:$(NC)\n"
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) ps
-
-.PHONY: clean
-clean:
-	@printf "$(RED)🧹 Cleaning all containers, volumes, and caches...$(NC)\n"
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) down -v --remove-orphans
-	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE_PROD) down -v --remove-orphans
-	docker volume prune -f
-	@printf "$(YELLOW)Cleaning frontend...$(NC)\n"
-	cd $(FRONTEND_DIR) && rm -rf node_modules .expo .expo-shared
-	@printf "$(GREEN)✅ Cleanup complete$(NC)\n"
-
-.PHONY: clean-docker
-clean-docker:
-	@printf "$(RED)⚠️  Cleaning Docker system (images, containers, volumes)...$(NC)\n"
-	docker system prune -af --volumes
-	@printf "$(GREEN)✅ Docker system cleaned$(NC)\n"
-
-.PHONY: restart
-restart:
-	@printf "$(YELLOW)🔄 Restarting all services...$(NC)\n"
-	$(MAKE) stop
-	@sleep 2
-	$(MAKE) dev
+	cd $(FRONTEND_DIR) && npm run web
 
 # --- Testing Commands ---
 
@@ -294,11 +135,6 @@ restart:
 test-backend:
 	@printf "$(GREEN)🧪 Running backend tests...$(NC)\n"
 	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) exec web python manage.py test
-
-.PHONY: test-frontend
-test-frontend:
-	@printf "$(GREEN)🧪 Running frontend tests...$(NC)\n"
-	cd $(FRONTEND_DIR) && npm test
 
 .PHONY: lint-backend
 lint-backend:
