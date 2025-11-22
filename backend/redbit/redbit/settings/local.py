@@ -44,12 +44,14 @@ MEDIA_ROOT = BASE_DIR.parent / "mediafiles"
 AUTHENTICATION_BACKENDS = [
     "graphql_jwt.backends.JSONWebTokenBackend",
     "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
 ]
 GRAPHENE = {
     "SCHEMA": "redbit.graphql_api.schema.schema",
     "MIDDLEWARE": ("graphql_jwt.middleware.JSONWebTokenMiddleware",),
 }
 
+SITE_ID = 1
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -60,6 +62,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 GRAPHQL_JWT = {
     # --- เปลี่ยน Algorithm ---
@@ -101,5 +104,23 @@ CACHES = {
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
+    }
+}
+
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "SCOPE": [
+            "profile",
+            "email",
+        ],
+        "AUTH_PARAMS": {
+            "access_type": "online",
+        },
+    },
+    "apple": {
+        "SCOPE": [
+            "name",
+            "email",
+        ],
     }
 }

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,10 +11,12 @@ import { useQuery } from '@apollo/client/react';
 import { gql } from '@apollo/client';
 import PostCard from '@/components/PostCard';
 import { router } from 'expo-router';
+import { FilterChips } from '@/components/FilterChips';
+import CreatePostInput from '@/components/CreatePostInput';
 
 const GET_ALL_POSTS = gql`
-  query GetAllPosts {
-    allPosts {
+  query GetAllPosts($sortBy: String) {
+    allPosts(sortBy: $sortBy) {
       id
       title
       content
@@ -42,6 +44,7 @@ interface AllPostsData {
     createdAt: string;
     voteCount: number;
     commentCount: number;
+    userVote: number;
     author: {
       username: string;
       profilePicture?: string;
@@ -53,8 +56,25 @@ interface AllPostsData {
   }[];
 }
 
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
+
 export default function HomeScreen() {
-  const { loading, error, data, refetch } = useQuery<AllPostsData>(GET_ALL_POSTS);
+  const [activeFilter, setActiveFilter] = useState('New');
+  const { loading, error, data, refetch } = useQuery<AllPostsData>(GET_ALL_POSTS, {
+    variables: { sortBy: activeFilter.toLowerCase() },
+    fetchPolicy: 'cache-and-network', // Ensure we get fresh data
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
+
+  const handleFilterSelect = (filter: string) => {
+    setActiveFilter(filter);
+  };
 
   if (loading && !data) {
     return (
@@ -78,12 +98,7 @@ export default function HomeScreen() {
   }
 
   const renderItem = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      onPress={() => router.push(`/post/${item.id}` as any)}
-      activeOpacity={0.8}
-    >
-      <PostCard post={item} />
-    </TouchableOpacity>
+    <PostCard post={item} />
   );
 
   return (
@@ -98,27 +113,18 @@ export default function HomeScreen() {
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={refetch} tintColor="#D93A00" />
         }
+        ListHeaderComponent={
+          <View>
+            <CreatePostInput />
+            <FilterChips active={activeFilter} onSelect={handleFilterSelect} />
+          </View>
+        }
         ListEmptyComponent={
           <View className="flex-1 justify-center items-center p-10">
             <Text className="text-muted-foreground">No posts yet.</Text>
           </View>
         }
       />
-
-      {/* Floating Action Button (Placeholder for Create Post) */}
-      <TouchableOpacity
-        className="absolute bottom-6 right-6 bg-upvote w-14 h-14 rounded-full items-center justify-center shadow-lg"
-        onPress={() => router.push('/post/create' as any)}
-        style={{
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 4,
-          elevation: 8,
-        }}
-      >
-        <Text className="text-white text-3xl font-bold pb-1">+</Text>
-      </TouchableOpacity>
     </View>
   );
 }

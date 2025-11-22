@@ -1,7 +1,7 @@
 import "../global.css";
 import React, { useEffect } from "react";
-import { Stack, useRouter, useSegments, useRootNavigationState } from "expo-router";
-import { View, Platform } from "react-native";
+import { Stack, useRouter, useSegments, useRootNavigationState, usePathname } from "expo-router";
+import { View, Platform, ActivityIndicator } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ApolloClient, InMemoryCache, HttpLink } from "@apollo/client";
@@ -46,6 +46,7 @@ const client = new ApolloClient({
 
 function RootLayoutNav() {
   const segments = useSegments();
+  const pathname = usePathname();
   const router = useRouter();
   const navigationState = useRootNavigationState();
 
@@ -65,19 +66,32 @@ function RootLayoutNav() {
       if (!token && !inAuthGroup) {
         // No token and not in auth group -> redirect to login
         // Use replace to avoid going back
-        router.replace('/auth/login' as any);
-      } else if (token && inAuthGroup) {
-        // Token present and in auth group -> redirect to home
-        router.replace('/(tabs)' as any);
+        // Wrap in setTimeout to avoid "Attempted to navigate before mounting the Root Layout component"
+        setTimeout(() => {
+          router.replace('/auth/login' as any);
+        }, 0);
+      } else if (token && (inAuthGroup || pathname === '/')) {
+        // Token present and in auth group OR at root -> redirect to home
+        setTimeout(() => {
+          router.replace('/(tabs)/(home)' as any);
+        }, 0);
       }
 
       await SplashScreen.hideAsync();
     };
 
     checkAuth();
-  }, [segments, router, navigationState?.key]);
+  }, [segments, navigationState?.key, pathname]);
 
   const isAuthGroup = segments[0] === 'auth';
+
+  if (!navigationState?.key) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <ScreenLayout hideSidebar={isAuthGroup}>

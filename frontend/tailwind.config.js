@@ -11,6 +11,7 @@ module.exports = {
   // 3. ส่วนสำคัญสำหรับ NativeWind:
   // ระบุตำแหน่งไฟล์ที่ Tailwind จะไปสแกนหา className
   content: ["./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}"],
+  presets: [require("nativewind/preset")],
 
   // 4. ตั้งค่า Theme (ธีม)
   theme: {

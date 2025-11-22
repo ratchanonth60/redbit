@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { formatDistanceToNow } from 'date-fns';
 import { useMutation } from '@apollo/client/react';
 import { gql } from '@apollo/client';
+import { ArrowBigUp, ArrowBigDown, MessageSquare, Share2, MoreHorizontal } from 'lucide-react-native';
+import Colors from '@/constants/colors';
 
 const VOTE_MUTATION = gql`
   mutation Vote($postId: ID!, $value: Int!) {
@@ -87,32 +89,33 @@ export default function PostCard({ post }: PostCardProps) {
     });
   };
 
-  const VoteButtons = ({ vertical = false }) => (
-    <View className={`items-center ${vertical ? 'flex-col mr-4 bg-transparent' : 'flex-row bg-muted rounded-full px-2 py-1 mr-4'}`}>
-      <TouchableOpacity onPress={() => handleVote(1)}>
-        <Text className={`font-bold text-lg ${vertical ? 'mb-1' : 'mr-1'} ${post.userVote === 'up' ? 'text-upvote' : 'text-text'}`}>
-          ⬆
-        </Text>
+  const VoteButtons = () => (
+    <View className="flex-row items-center bg-muted/50 rounded-full px-2 py-1 mr-3 border border-transparent hover:border-border">
+      <TouchableOpacity onPress={() => handleVote(1)} className="p-1">
+        <ArrowBigUp
+          size={24}
+          color={post.userVote === 'up' ? Colors.light.upvote : Colors.light.textSecondary}
+          fill={post.userVote === 'up' ? Colors.light.upvote : 'transparent'}
+        />
       </TouchableOpacity>
-      <Text className={`font-bold text-xs ${post.userVote === 'up' ? 'text-upvote' :
-        post.userVote === 'down' ? 'text-downvote' : 'text-text'
+      <Text className={`font-bold text-sm mx-1 ${post.userVote === 'up' ? 'text-upvote' :
+          post.userVote === 'down' ? 'text-downvote' : 'text-text'
         }`}>
         {post.voteCount || 0}
       </Text>
-      <TouchableOpacity onPress={() => handleVote(-1)}>
-        <Text className={`font-bold text-lg ${vertical ? 'mt-1' : 'ml-1'} ${post.userVote === 'down' ? 'text-downvote' : 'text-text'}`}>
-          ⬇
-        </Text>
+      <TouchableOpacity onPress={() => handleVote(-1)} className="p-1">
+        <ArrowBigDown
+          size={24}
+          color={post.userVote === 'down' ? Colors.light.downvote : Colors.light.textSecondary}
+          fill={post.userVote === 'down' ? Colors.light.downvote : 'transparent'}
+        />
       </TouchableOpacity>
     </View>
   );
 
   return (
-    <View className={`bg-card p-4 mb-2 border-b border-border ${isDesktop ? 'flex-row' : ''}`}>
-      {/* Desktop: Side Voting */}
-      {isDesktop && <VoteButtons vertical />}
-
-      <View className="flex-1">
+    <View className="bg-card mb-2 border-b border-border">
+      <View className="p-3">
         {/* Header: Community & Author */}
         <View className="flex-row items-center mb-2">
           {post.community && (
@@ -120,43 +123,70 @@ export default function PostCard({ post }: PostCardProps) {
               className="flex-row items-center mr-2"
               onPress={() => router.push(`/r/${post.community!.name}` as any)}
             >
-              {post.community.icon && (
+              {post.community.icon ? (
                 <Image
                   source={{ uri: post.community.icon }}
-                  className="w-6 h-6 rounded-full mr-1"
+                  className="w-8 h-8 rounded-full mr-2"
                 />
+              ) : (
+                <View className="w-8 h-8 rounded-full bg-gray-300 mr-2 items-center justify-center">
+                  <Text className="text-xs font-bold">{post.community.name[0].toUpperCase()}</Text>
+                </View>
               )}
-              <Text className="font-bold text-text text-xs">r/{post.community.name}</Text>
+              <View>
+                <Text className="font-bold text-text text-sm">r/{post.community.name}</Text>
+                <View className="flex-row items-center">
+                  <Text className="text-muted-foreground text-xs">
+                    u/{post.author.username} • {timeAgo}
+                  </Text>
+                </View>
+              </View>
             </TouchableOpacity>
           )}
-          <Text className="text-muted-foreground text-xs mr-1">•</Text>
-          <TouchableOpacity onPress={() => router.push(`/u/${post.author.username}` as any)}>
-            <Text className="text-muted-foreground text-xs">
-              u/{post.author.username}
-            </Text>
+          {!post.community && (
+            <View className="flex-row items-center">
+              <View className="w-8 h-8 rounded-full bg-gray-300 mr-2 items-center justify-center">
+                <Text className="text-xs font-bold">u/</Text>
+              </View>
+              <View>
+                <Text className="font-bold text-text text-sm">u/{post.author.username}</Text>
+                <Text className="text-muted-foreground text-xs">{timeAgo}</Text>
+              </View>
+            </View>
+          )}
+
+          <TouchableOpacity className="ml-auto p-1">
+            <MoreHorizontal size={20} color={Colors.light.textSecondary} />
           </TouchableOpacity>
-          <Text className="text-muted-foreground text-xs ml-1">
-            • {timeAgo}
-          </Text>
         </View>
 
         {/* Content */}
         <TouchableOpacity onPress={() => router.push(`/post/${post.id}` as any)}>
-          <Text className="text-lg font-bold text-text mb-2">{post.title}</Text>
-          <Text className="text-muted-foreground text-sm mb-4" numberOfLines={3}>
-            {post.content}
-          </Text>
+          <Text className="text-lg font-bold text-text mb-2 leading-6">{post.title}</Text>
+          {post.content ? (
+            <Text className="text-textSecondary text-sm mb-2" numberOfLines={3}>
+              {post.content}
+            </Text>
+          ) : null}
+        </TouchableOpacity>
+      </View>
+
+      {/* Footer: Votes & Actions */}
+      <View className="flex-row items-center px-3 pb-2">
+        <VoteButtons />
+
+        <TouchableOpacity
+          className="flex-row items-center bg-muted/50 rounded-full px-3 py-2 mr-3 border border-transparent hover:border-border"
+          onPress={() => router.push(`/post/${post.id}` as any)}
+        >
+          <MessageSquare size={20} color={Colors.light.textSecondary} />
+          <Text className="text-textSecondary font-bold text-xs ml-2">{post.commentCount || 0}</Text>
         </TouchableOpacity>
 
-        {/* Footer: Votes (Mobile) & Comments */}
-        <View className="flex-row items-center">
-          {!isDesktop && <VoteButtons />}
-
-          <View className="flex-row items-center bg-muted rounded-full px-2 py-1 hover:bg-gray-200">
-            <Text className="text-text font-bold text-xs mr-1">💬</Text>
-            <Text className="text-text font-bold text-xs">{post.commentCount || 0} Comments</Text>
-          </View>
-        </View>
+        <TouchableOpacity className="flex-row items-center bg-muted/50 rounded-full px-3 py-2 border border-transparent hover:border-border">
+          <Share2 size={20} color={Colors.light.textSecondary} />
+          <Text className="text-textSecondary font-bold text-xs ml-2">Share</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );

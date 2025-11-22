@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, Platform, Image, ScrollView, KeyboardAvoidingView, useWindowDimensions } from 'react-native';
 import { useMutation } from '@apollo/client/react';
 import { gql } from '@apollo/client';
 import { router } from 'expo-router';
+import { AntDesign } from '@expo/vector-icons';
 
 const REGISTER_MUTATION = gql`
   mutation RegisterUser($username: String!, $email: String!, $password: String!) {
@@ -41,6 +42,8 @@ export default function RegisterScreen() {
     const [confirmPassword, setConfirmPassword] = useState('');
 
     const [register, { loading }] = useMutation<RegisterData, RegisterVars>(REGISTER_MUTATION);
+    const { width } = useWindowDimensions();
+    const isDesktop = width >= 768;
 
     const handleRegister = async () => {
         if (!username || !email || !password || !confirmPassword) {
@@ -71,70 +74,114 @@ export default function RegisterScreen() {
         }
     };
 
-    return (
-        <ScrollView
-            contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
-            className="bg-background"
+    const SocialButton = ({ icon, text, onPress }: { icon: any, text: string, onPress: () => void }) => (
+        <TouchableOpacity
+            className="flex-row items-center justify-center bg-card border border-border rounded-full p-3 mb-3 hover:bg-gray-100"
+            onPress={onPress}
         >
-            <Text className="text-3xl font-bold text-text mb-8 text-center">
-                Create Account
-            </Text>
+            {icon}
+            <Text className="text-text font-bold ml-2">{text}</Text>
+        </TouchableOpacity>
+    );
 
-            <TextInput
-                className="bg-gray-100 p-4 rounded-lg mb-4 text-black"
-                placeholder="Username"
-                placeholderTextColor="#666"
-                value={username}
-                onChangeText={setUsername}
-                autoCapitalize="none"
-            />
+    return (
+        <View className="flex-1 bg-background">
+            <View className={`flex-1 justify-center items-center p-4 ${isDesktop ? 'bg-gray-100' : ''}`}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    className={`w-full ${isDesktop ? 'max-w-md bg-white p-8 rounded-xl shadow-sm border border-border' : ''}`}
+                >
+                    <ScrollView showsVerticalScrollIndicator={false}>
+                        <View className="items-center mb-8">
+                            <View className="w-12 h-12 bg-upvote rounded-full items-center justify-center mb-4">
+                                <Text className="text-white font-bold text-2xl">r</Text>
+                            </View>
+                            <Text className="text-2xl font-bold text-text">Sign up for Redbit</Text>
+                            <Text className="text-textSecondary text-sm mt-2 text-center">
+                                By continuing, you agree to our User Agreement and Privacy Policy.
+                            </Text>
+                        </View>
 
-            <TextInput
-                className="bg-gray-100 p-4 rounded-lg mb-4 text-black"
-                placeholder="Email"
-                placeholderTextColor="#666"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-            />
+                        {/* Social Login */}
+                        <View className="mb-6">
+                            <SocialButton
+                                icon={<AntDesign name="google" size={20} color="black" />}
+                                text="Continue with Google"
+                                onPress={() => console.log('Google Signup')}
+                            />
+                            <SocialButton
+                                icon={<AntDesign name="apple" size={20} color="black" />}
+                                text="Continue with Apple"
+                                onPress={() => console.log('Apple Signup')}
+                            />
+                        </View>
 
-            <TextInput
-                className="bg-gray-100 p-4 rounded-lg mb-4 text-black"
-                placeholder="Password"
-                placeholderTextColor="#666"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-            />
+                        {/* Divider */}
+                        <View className="flex-row items-center mb-6">
+                            <View className="flex-1 h-px bg-border" />
+                            <Text className="mx-4 text-textSecondary text-xs uppercase font-bold">OR</Text>
+                            <View className="flex-1 h-px bg-border" />
+                        </View>
 
-            <TextInput
-                className="bg-gray-100 p-4 rounded-lg mb-6 text-black"
-                placeholder="Confirm Password"
-                placeholderTextColor="#666"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-            />
+                        {/* Form */}
+                        <View>
+                            <TextInput
+                                className="bg-card border border-border p-4 rounded-full mb-4 text-text focus:border-upvote outline-none"
+                                placeholder="Email"
+                                placeholderTextColor="#999"
+                                value={email}
+                                onChangeText={setEmail}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                            />
 
-            <TouchableOpacity
-                className="bg-red-500 p-4 rounded-full"
-                onPress={handleRegister}
-                disabled={loading}
-            >
-                <Text className="text-white text-center font-bold text-lg">
-                    {loading ? 'Creating Account...' : 'Register'}
-                </Text>
-            </TouchableOpacity>
+                            <TextInput
+                                className="bg-card border border-border p-4 rounded-full mb-4 text-text focus:border-upvote outline-none"
+                                placeholder="Username"
+                                placeholderTextColor="#999"
+                                value={username}
+                                onChangeText={setUsername}
+                                autoCapitalize="none"
+                            />
 
-            <TouchableOpacity
-                className="mt-6"
-                onPress={() => router.back()}
-            >
-                <Text className="text-red-500 text-center font-semibold">
-                    Already have an account? Login
-                </Text>
-            </TouchableOpacity>
-        </ScrollView>
+                            <TextInput
+                                className="bg-card border border-border p-4 rounded-full mb-4 text-text focus:border-upvote outline-none"
+                                placeholder="Password"
+                                placeholderTextColor="#999"
+                                value={password}
+                                onChangeText={setPassword}
+                                secureTextEntry
+                            />
+
+                            <TextInput
+                                className="bg-card border border-border p-4 rounded-full mb-6 text-text focus:border-upvote outline-none"
+                                placeholder="Confirm Password"
+                                placeholderTextColor="#999"
+                                value={confirmPassword}
+                                onChangeText={setConfirmPassword}
+                                secureTextEntry
+                            />
+
+                            <TouchableOpacity
+                                className={`bg-upvote p-4 rounded-full mb-4 ${loading ? 'opacity-50' : ''}`}
+                                onPress={handleRegister}
+                                disabled={loading}
+                            >
+                                <Text className="text-white text-center font-bold text-base">
+                                    {loading ? 'Creating Account...' : 'Sign Up'}
+                                </Text>
+                            </TouchableOpacity>
+
+                            <View className="flex-row justify-center mt-2 mb-4">
+                                <Text className="text-textSecondary">Already have an account? </Text>
+                                <TouchableOpacity onPress={() => router.push('/auth/login' as any)}>
+                                    <Text className="text-upvote font-bold">Log In</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </View>
+        </View>
     );
 }

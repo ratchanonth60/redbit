@@ -202,9 +202,12 @@ class ChangePassword(graphene.Mutation):
         return ChangePassword(success=True, errors=[])
 
 
+import graphql_social_auth
+
 class UserMutation(graphene.ObjectType):
     register_user = RegisterUser.Field()
     update_profile = UpdateProfile.Field()
     update_settings = UpdateSettings.Field()
     follow_user = FollowUser.Field()
     change_password = ChangePassword.Field()
+    social_auth = graphql_social_auth.SocialAuthJWT.Field()

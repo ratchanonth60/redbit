@@ -26,6 +26,8 @@ dependencies = [
     "django-cors-headers>=4.9.0",
     "graphene-file-upload>=1.3.0",
     "django-redis>=5.4.0",
+    "django-allauth>=0.61.1",
+    "django-graphql-social-auth>=0.1.0",
 ]
 
 [tool.setuptools.packages.find]

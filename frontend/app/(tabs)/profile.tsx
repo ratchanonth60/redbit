@@ -124,12 +124,21 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <TouchableOpacity
-        onPress={handleLogout}
-        className="px-6 py-2 rounded-full border border-red-500"
-      >
-        <Text className="text-red-500 font-bold">Logout</Text>
-      </TouchableOpacity>
+      <View className="flex-row justify-center space-x-4 w-full">
+        <TouchableOpacity
+          onPress={() => router.push('/profile/edit' as any)}
+          className="px-6 py-2 rounded-full border border-gray-300 bg-white"
+        >
+          <Text className="text-text font-bold">Edit Profile</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={handleLogout}
+          className="px-6 py-2 rounded-full border border-red-500"
+        >
+          <Text className="text-red-500 font-bold">Logout</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
