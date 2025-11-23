@@ -51,9 +51,20 @@ interface NotificationsData {
 
 export default function NotificationsScreen() {
     const { loading, data, refetch } = useQuery<NotificationsData>(GET_NOTIFICATIONS, {
-        pollInterval: 10000, // Poll every 10s
+        pollInterval: 30000, // Poll every 30 seconds (better performance)
+        fetchPolicy: 'cache-and-network', // Show cached data while fetching
     });
     const [markRead] = useMutation(MARK_READ_MUTATION);
+    const [refreshing, setRefreshing] = React.useState(false);
+
+    const onRefresh = React.useCallback(async () => {
+        setRefreshing(true);
+        try {
+            await refetch();
+        } finally {
+            setRefreshing(false);
+        }
+    }, [refetch]);
 
     const handleNotificationPress = (notification: Notification) => {
         if (!notification.isRead) {
@@ -133,7 +144,7 @@ export default function NotificationsScreen() {
                 renderItem={renderNotification}
                 keyExtractor={(item) => item.id}
                 refreshControl={
-                    <RefreshControl refreshing={loading} onRefresh={refetch} tintColor="#D93A00" />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#D93A00" />
                 }
                 ListEmptyComponent={
                     <View className="flex-1 justify-center items-center p-8 mt-10">

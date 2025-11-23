@@ -28,6 +28,10 @@ dependencies = [
     "django-redis>=5.4.0",
     "django-allauth>=0.61.1",
     "django-graphql-social-auth>=0.1.0",
+    # WebSocket and Channels for GraphQL Subscriptions
+    "channels>=4.0.0",
+    "channels-redis>=4.1.0",
+    "daphne>=4.0.0",
 ]
 
 [tool.setuptools.packages.find]

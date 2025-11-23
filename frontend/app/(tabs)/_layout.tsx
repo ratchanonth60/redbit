@@ -1,15 +1,23 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Tabs } from "expo-router";
+import { Platform, useWindowDimensions } from "react-native";
 import { Home, Compass, User, Users, Search, Bell } from "lucide-react-native";
+import { Ionicons } from '@expo/vector-icons';
 import Colors from "@/constants/colors";
 import { HapticTab } from "@/components/haptic-tab";
-import { useWindowDimensions } from "react-native";
+import NotificationBadge from '@/components/NotificationBadge';
+import { useNotificationSubscription } from '@/hooks/useNotificationSubscription';
 
 // ...
 
-export default function TabLayout() {
+export default function TabsLayout() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
+
+  // Subscribe to real-time notifications (web only for now)
+  if (Platform.OS === 'web') {
+    useNotificationSubscription();
+  }
 
   return (
     <Tabs

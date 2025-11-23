@@ -3,20 +3,36 @@ services:
     build:
       context: .
       args:
-        PYTHON_VERSION: "3.13" 
+        PYTHON_VERSION: "3.13"
+    command: daphne -b 0.0.0.0 -p 8000 redbit.asgi:application
     ports:
       - "8000:8000"
     volumes:
-      - static_volume:/app/redbit/staticfiles 
+      - static_volume:/app/redbit/staticfiles
     env_file:
       - .env
     depends_on:
       - db
+      - redis
+
+  worker:
+    build:
+      context: .
+      args:
+        PYTHON_VERSION: "3.13"
+    command: celery -A redbit worker --loglevel=info
+    volumes:
+      - static_volume:/app/redbit/staticfiles
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
 
   db:
     image: postgres:latest
     ports:
-      - "5432:5432" 
+      - "5432:5432"
     volumes:
       - postgres_data:/data/postgres
     env_file:

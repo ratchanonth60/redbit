@@ -29,3 +29,9 @@ AWS_S3_CUSTOM_DOMAIN = env(
     'AWS_S3_CUSTOM_DOMAIN', 
     default=f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
 )  # e.g., 'd1234abcd.cloudfront.net'
+
+# Security Settings
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https"

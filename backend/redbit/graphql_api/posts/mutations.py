@@ -7,6 +7,8 @@ from django.core.validators import URLValidator
 from graphql_jwt.decorators import login_required
 from graphene_file_upload.scalars import Upload
 from .types import CommentType, PostType
+from apps.notifications.services import create_notification
+from apps.notifications.models import Notification
 
 
 class VoteMutation(graphene.Mutation):
@@ -40,6 +42,16 @@ class VoteMutation(graphene.Mutation):
             else:
                 vote.value = value
                 vote.save()
+        
+        # Notify if upvote
+        if value == 1 and created:
+            create_notification(
+                recipient=post.author,
+                sender=user,
+                notification_type=Notification.NotificationType.UPVOTE,
+                message=f"{user.username} upvoted your post: {post.title}",
+                related_object=post
+            )
 
         return VoteMutation(success=True, post=post, errors=[])
 
@@ -71,6 +83,15 @@ class CreateComment(graphene.Mutation):
             return CreateComment(success=False, errors=errors)
 
         comment = Comment.objects.create(author=user, post=post, content=content)
+
+        # Notify post author
+        create_notification(
+            recipient=post.author,
+            sender=user,
+            notification_type=Notification.NotificationType.COMMENT,
+            message=f"{user.username} commented on your post: {post.title}",
+            related_object=comment
+        )
 
         return CreateComment(success=True, comment=comment, errors=[])
 

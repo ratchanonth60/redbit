@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, Platform, Image, ScrollView, KeyboardAvoidingView, useWindowDimensions } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, Platform, Image, ScrollView, KeyboardAvoidingView, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { useMutation } from '@apollo/client/react';
 import { gql } from '@apollo/client';
-import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
 import { AntDesign } from '@expo/vector-icons';
+import { useAuth } from '../../contexts/AuthContext';
 
 const LOGIN_MUTATION = gql`
   mutation Login($username: String!, $password: String!) {
@@ -71,25 +71,12 @@ export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [login, { loading, error }] = useMutation<LoginData, LoginVars>(LOGIN_MUTATION);
-  const [socialAuth, { loading: socialLoading }] = useMutation<SocialAuthData>(SOCIAL_AUTH_MUTATION);
+
+
+  const { login: authLogin } = useAuth();
 
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
-
-  const saveTokenAndRedirect = async (token: string, refreshToken?: string) => {
-    if (Platform.OS === 'web') {
-      localStorage.setItem('token', token);
-      if (refreshToken) {
-        localStorage.setItem('refreshToken', refreshToken);
-      }
-    } else {
-      await SecureStore.setItemAsync('token', token);
-      if (refreshToken) {
-        await SecureStore.setItemAsync('refreshToken', refreshToken);
-      }
-    }
-    router.replace('/(tabs)' as any);
-  };
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -100,8 +87,8 @@ export default function LoginScreen() {
       const { data } = await login({
         variables: { username, password }
       });
-      if (data?.tokenAuth?.token) {
-        await saveTokenAndRedirect(data.tokenAuth.token, data.tokenAuth.refreshToken);
+      if (data?.tokenAuth?.token && data?.tokenAuth?.user) {
+        await authLogin(data.tokenAuth.token, data.tokenAuth.user, data.tokenAuth.refreshToken);
       }
     } catch (e: any) {
       console.error(e);
@@ -109,36 +96,58 @@ export default function LoginScreen() {
     }
   };
 
+  const [socialLoading, setSocialLoading] = useState<string | null>(null);
+
   const handleSocialLogin = async (provider: string) => {
-    // Simulate getting email from provider
-    const mockEmail = `user_${provider.toLowerCase()}_${Math.floor(Math.random() * 1000)}@example.com`;
-
+    setSocialLoading(provider);
     try {
-      const { data } = await socialAuth({
-        variables: {
-          provider,
-          email: mockEmail,
-        }
-      });
+      // For web platform, redirect to OAuth URL
+      if (Platform.OS === 'web') {
+        const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+        const oauthUrl = `${backendUrl}/accounts/${provider.toLowerCase()}/login/`;
 
-      if (data?.socialAuth?.success && data.socialAuth.token) {
-        await saveTokenAndRedirect(data.socialAuth.token, data.socialAuth.refreshToken);
+        // Use full page redirect instead of popup
+        window.location.href = oauthUrl;
       } else {
-        Alert.alert('Error', data?.socialAuth?.errors?.join('\n') || 'Social login failed');
+        // For native apps, use expo-web-browser
+        const { WebBrowser } = await import('expo-web-browser');
+        const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+        const oauthUrl = `${backendUrl}/accounts/${provider.toLowerCase()}/login/`;
+
+        const result = await WebBrowser.openAuthSessionAsync(oauthUrl, 'redbit://');
+
+        if (result.type === 'success' && result.url) {
+          // Extract token from callback URL
+          const url = new URL(result.url);
+          const token = url.searchParams.get('token');
+          const refreshToken = url.searchParams.get('refresh_token');
+
+          if (token) {
+            const placeholderUser = { id: '0', username: 'loading...', email: '' };
+            await authLogin(token, placeholderUser, refreshToken || undefined);
+          }
+        }
+        setSocialLoading(null);
       }
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'An unexpected error occurred.');
+      console.error('OAuth error:', e);
+      Alert.alert('Error', e.message || 'An unexpected error occurred during social login.');
+      setSocialLoading(null);
     }
   };
 
-  const SocialButton = ({ icon, text, onPress }: { icon: any, text: string, onPress: () => void }) => (
+  const SocialButton = ({ icon, text, provider, onPress }: { icon: any, text: string, provider: string, onPress: () => void }) => (
     <TouchableOpacity
-      className="flex-row items-center justify-center bg-card border border-border rounded-full p-3 mb-3 hover:bg-gray-100"
+      className={`flex-row items-center justify-center bg-card border border-border rounded-full p-3 mb-3 ${socialLoading === provider ? 'opacity-70' : 'hover:bg-gray-100'}`}
       onPress={onPress}
-      disabled={socialLoading || loading}
+      disabled={!!socialLoading || loading}
     >
-      {icon}
-      <Text className="text-text font-bold ml-2">{text}</Text>
+      {socialLoading === provider ? (
+        <ActivityIndicator size="small" color="#000" />
+      ) : (
+        icon
+      )}
+      <Text className="text-text font-bold ml-2">{socialLoading === provider ? 'Connecting...' : text}</Text>
     </TouchableOpacity>
   );
 
@@ -164,11 +173,13 @@ export default function LoginScreen() {
             <SocialButton
               icon={<AntDesign name="google" size={20} color="black" />}
               text="Continue with Google"
+              provider="Google"
               onPress={() => handleSocialLogin('Google')}
             />
             <SocialButton
               icon={<AntDesign name="apple" size={20} color="black" />}
               text="Continue with Apple"
+              provider="Apple"
               onPress={() => handleSocialLogin('Apple')}
             />
           </View>

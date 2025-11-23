@@ -6,6 +6,8 @@ from django.core.validators import URLValidator
 from graphql_jwt.decorators import login_required
 
 from .types import UserType
+from apps.notifications.services import create_notification
+from apps.notifications.models import Notification
 
 User = get_user_model()
 
@@ -164,6 +166,15 @@ class FollowUser(graphene.Mutation):
         else:
             current_user.following.add(target_user)
             is_following = True
+            
+            # Notify followed user
+            create_notification(
+                recipient=target_user,
+                sender=current_user,
+                notification_type=Notification.NotificationType.FOLLOW,
+                message=f"{current_user.username} started following you.",
+                related_object=current_user
+            )
         
         return FollowUser(
             success=True,
